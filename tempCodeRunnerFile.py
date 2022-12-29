@@ -11,12 +11,12 @@ that determines where the file will be stored. The progress may sometimes stop d
 number of API calls per minute of 50. The last successfully used starting index for the while loop in the main 
 function "create_data_files" is printed and also indicated at the end of the file names. If the process is 
 interrupted for any reason the user can call the main function at the bottom of this file with a new starting 
-index 'create_data_files(starting_index = <new starting index>)'.
+index "create_data_files(starting_index = <new starting index>)".
 """
 
-#! import os
-#! os.system("pip3 install pandas")
-#! os.system("python3 -m pip install -U pycoingecko")
+# import os
+# os.system("pip3 install pandas")
+# os.system("python3 -m pip install -U pycoingecko")
 
 import time
 import datetime
@@ -49,7 +49,7 @@ def filtered_ids(coin_list, starting_index, ids_per_data_subset):
                     print("There is a missing key for " + coin_list[index]["id"]+ " but the process will continue")
                 index += 1
                 # printing the progress 
-                progress = int((index - starting_index) / ids_per_data_subset * 100)
+                progress = int(len(ids) / ids_per_data_subset * 100)
                 if progress >= percentage_counter:
                     percentage_counter += 1
                     print(str(progress) + "%")
@@ -81,13 +81,11 @@ def retrieving_data(ids):
     # filling a dictionary with historic data (dates, prices, market capitalizations, and total volumes) for each coin ID
     historic_data = {"id": [], "dates": [], "prices": [], "market_caps": [], "total_volumes": []}
     print("The retrieval progress for this data subset is: ")
-    counter = 0
     percentage_counter = 1
     list_length = len(ids)
     for id in ids:
         # printing the progress 
-        counter += 1
-        progress = int(counter / list_length * 100)
+        progress = int(len(historic_data[id]) / list_length * 100)
         if progress >= percentage_counter:
             percentage_counter += 1
             print(str(progress) + "%")
@@ -120,7 +118,7 @@ def retrieving_data(ids):
     return historic_data
 
 # this is the main function that can be used to download the data
-def create_data_files(starting_index = 0, ids_per_data_subset = 100):
+def create_data_files(starting_index, ids_per_data_subset):
     # retrieving a list of all coin IDs
     # the initial API call returns a list of dictionaries with detailed information
     coin_list = cg.get_coins_list()
@@ -145,4 +143,5 @@ def create_data_files(starting_index = 0, ids_per_data_subset = 100):
             print("The last successful starting index is: " + str(starting_index))
 
 # calling the main function
-create_data_files()
+# to download the entire data set at once (not safe) insert "len(cg.get_coins_list())" for the second argument
+create_data_files(0, 100)
