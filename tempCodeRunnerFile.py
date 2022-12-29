@@ -7,7 +7,8 @@ The user should make sure that the needed libraries are installled (pandas and p
 also use his/her CoinGecko Pro API Key. The user may also add further filtering criteria and change the 
 chose time period. Finally, the user should specify the destination path where the file will be stored 
 at the bottom of this file. The progress may sometimes stop due to the limit imposed upon the number of 
-API calls per minute of 50.
+API calls per minute of 50. The last successful starting index is printed and also used at the end of the
+file names.
 """
 
 #! import os
@@ -26,36 +27,42 @@ cg = CoinGeckoAPI()
 print(cg.ping())
 
 # this function takes in a crude list of coin IDs and returns a filtered list
-def filtered_ids(ids_list):
-    list_length = len(ids_list)
-    counter = 0
+def filtered_ids(coin_list, starting_index, number_of_ids_per_data_subset):
+    index = starting_index
     percentage_counter = 1
     ids = []
-    print("The progress for this data subset is: ")
-    for id in ids_list:
-        # printing the progress 
-        counter += 1
-        progress = int(counter / list_length * 100)
-        if progress >= percentage_counter:
-            percentage_counter += 1
-            print(str(progress) + "%")
-        
+    print("The filtering progress for this data subset is: ")
+    while True:
         try:
-            # filtering out coins with a current market capitalization of less than 1m USD
-            if cg.get_coin_by_id(id["id"])["market_data"]["market_cap"]["usd"] >= 1000000:
-                # this might take a while
-                ids.append(id["id"])
+            # if the end of the whole list is reached
+            if index + 1 <= len(coin_list):
+                # if the number of IDs per data subset is reached
+                if len(ids) < number_of_ids_per_data_subset:
+                    # filtering out coins with a current market capitalization of less than 1m USD
+                    if cg.get_coin_by_id(coin_list[index]["id"])["market_data"]["market_cap"]["usd"] >= 1000000:
+                        # this might take a while
+                        ids.append(coin_list[index]["id"])
+                        index += 1
+
+                        # printing the progress 
+                        progress = int((index - starting_index) / number_of_ids_per_data_subset * 100)
+                        if progress >= percentage_counter:
+                            percentage_counter += 1
+                            print(str(progress) + "%")
+                else:
+                    break
+            else:
+                break
         except:
             print("There is a missing key for " + id["id"]+ " but the process will continue")
-
-    print("Filtered out " + str(int((1 - len(ids) / list_length) * 100)) + "% of the data")
+            index += 1
 
     # checking for duplicate IDs (there are usually none)
     for id in ids:
         if ids.count(id) > 1:
             print("This ID occurs more than once: " + id)
     
-    return ids
+    return (ids, index)
 
 # Creating Unix timestamps
 # the end_date is today
@@ -71,7 +78,7 @@ print(datetime.datetime.fromtimestamp(end_date))
 def retrieving_data(ids):
     # filling a dictionary with historic data (dates, prices, market capitalizations, and total volumes) for each coin ID
     historic_data = {"id": [], "dates": [], "prices": [], "market_caps": [], "total_volumes": []}
-    print("The progress for this data subset is: ")
+    print("The retrieval progress for this data subset is: ")
     counter = 0
     percentage_counter = 1
     list_length = len(ids)
@@ -111,48 +118,32 @@ def retrieving_data(ids):
     return historic_data
 
 # this is the main function that can be used to download the data
-def create_data_files(set_starting_index = 0, number_of_ids_per_data_subset = 100):
+def create_data_files(starting_index = 0, number_of_ids_per_data_subset = 100):
     # retrieving a list of all coin IDs
     # the initial API call returns a list of dictionaries with detailed information
     coin_list = cg.get_coins_list()
     list_length = len(coin_list)
     path = "/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data"
-    # progress for slicing the ID list by number_of_ids
-    starting_index = set_starting_index
-    ending_index = set_starting_index + number_of_ids_per_data_subset - 1
-    # counters for the progress information
-    counter = 0
+    # counter for the progress information
     percentage_counter = 0
     while True:
-        if counter != 0:
-            print("The last successful starting index is: " + str(starting_index))
+        # printing the progress 
+        progress = int(starting_index / list_length * 100)
+        if progress >= percentage_counter:
+            percentage_counter += 1
+            print("The overall progress is: " + str(progress) + "%")
         
-        if ending_index + 1 < list_length:
-            # printing the progress 
-            counter += number_of_ids_per_data_subset
-            progress = int(counter / list_length * 100)
-            if progress >= percentage_counter:
-                percentage_counter += 1
-                print("The overall progress is: " + str(progress) + "%")
-            
-            ids_list = coin_list[starting_index:ending_index]
-            ids = filtered_ids(ids_list)
-            # exporting the data in a data frame to a path specified by the user
-            # the starting index is stored
-            retrieving_data(ids).to_csv(path + "/cg_data.csv" + str(starting_index), index=False)
+        ids, ending_index = filtered_ids(coin_list, starting_index, number_of_ids_per_data_subset)
+        # exporting the data in a data frame to a path specified by the user
+        # the starting index is stored
+        retrieving_data(ids).to_csv(path + "/cg_data.csv" + str(starting_index), index=False)
+        starting_index = ending_index
 
-            starting_index = ending_index + 1
-            ending_index += number_of_ids_per_data_subset
-            
-        else:
-            # selecting the remaining IDs
-            ids_list = coin_list[starting_index:]
-            ids = filtered_ids(ids_list)
-            retrieving_data(ids).to_csv(path + "/cg_data.csv" + str(starting_index), index=False)
-            print("All data subsets were downloaded successfully")
+        if starting_index + 1 == list_length:
             break
-
     
+        if starting_index != 0:
+            print("The last successful starting index is: " + str(starting_index))
 
 # calling the main function
 create_data_files()
