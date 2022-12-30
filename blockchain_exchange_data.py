@@ -1,9 +1,12 @@
 """
 This file contains the code needed to retrieve the <> data from https://exchange.blockchain.com/. In order to run
-this code you need to sign up there and retrieve an API secret that you insert 
+this code you need to sign up there and retrieve an API secret that you insert at the respective position in the
+code below. For a Mac system the local IP address that is needed for retrieving the API secret can be retriebed by
+entering 
+
+Make sure by activating your API key by e-mail.
 
 """
-
 
 # enter "ipconfig getifaddr en0" into a Mac terminal to retrieve your local IP address
 # 192.168.178.148
@@ -24,7 +27,7 @@ url = "wss://ws.blockchain.info/mercury-gateway/v1/ws"
 ws = create_connection(url, **options)
 # substitute API_SECRET for your API secret
 # msg = '{"token": "{API_SECRET}", "channel": "auth"}'
-msg = '{"token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkFQSSJ9.eyJhdWQiOiJtZXJjdXJ5IiwidWlkIjoiYThjMjVjMDQtYmUwMi00NGQyLWI1MmQtZjJjNDhiNTkxY2U5IiwiaXNzIjoiYmxvY2tjaGFpbiIsInJkbyI6ZmFsc2UsImlhdCI6MTY3MjQyMjg1OCwianRpIjoiZTcxNGY3MzgtYWZhZC00NDAzLTk3MTgtMDZlNjM0YTNjOTdjIiwic2VxIjo2NDMyOTAxLCJ3ZGwiOnRydWV9.IDiPYRDd/6ap8XMWMQJjUy5JQtScPXWL/9ULLPXFtUtPUUP+OmDl30hz2NZiKO4+2G3PScpb6698D0j5JC8nah0=", "action": "subscribe", "channel": "auth"}'
+msg = '{"token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkFQSSJ9.eyJhdWQiOiJtZXJjdXJ5IiwidWlkIjoiYThjMjVjMDQtYmUwMi00NGQyLWI1MmQtZjJjNDhiNTkxY2U5IiwiaXNzIjoiYmxvY2tjaGFpbiIsInJkbyI6ZmFsc2UsImlhdCI6MTY3MjQzMTUzMywianRpIjoiYWE1MzU3ZWEtZmRmZC00NTkwLWFjZTAtOGI5NTljMGE5YTE0Iiwic2VxIjo2NDMyOTAxLCJ3ZGwiOnRydWV9.ID/zYJ71kKgITZVLeGnV2XcF6Msh3OPNncLtDLLUTdFvNt4Y/MMidz8CgErjWsqUmJobRvdQlwJpf0I4YU3Vy/0=", "action": "subscribe", "channel": "auth"}'
 ws.send(msg)
 result =  ws.recv()
 print(result)

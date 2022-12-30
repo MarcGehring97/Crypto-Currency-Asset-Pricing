@@ -57,7 +57,6 @@ def filtered_ids(coin_list, starting_index, ids_per_data_subset):
                 break
         else:
             break
-        
 
     # checking for duplicate IDs (there are usually none)
     for id in ids:
@@ -93,25 +92,28 @@ def retrieving_data(ids):
         # retrieving the data 
         data = cg.get_coin_market_chart_range_by_id(id=id, vs_currency="usd", from_timestamp=start_date, to_timestamp=end_date)
         # this might take a while
-        historic_data["id"].append(id)
 
         dates = []
         prices = []
         for i in data["prices"]:
             dates.append(i[0])
-            dates.append(i[1])
-        historic_data["dates"].append(dates)
-        historic_data["prices"].append(prices)
-
+            prices.append(i[1])
+        
         market_caps = []
         for i in data["market_caps"]:
             market_caps.append(i[1])
-        historic_data["market_caps"].append(market_caps)
-
+        
         total_volumes = []
         for i in data["total_volumes"]:
-            market_caps.append(i[1])
-        historic_data["total_volumes"].append(total_volumes)
+            total_volumes.append(i[1])
+
+        # filtering out any coins for which not all information is available
+        if len(dates) != 0 and len(prices) != 0 and len(market_caps) != 0 and len(total_volumes) != 0:
+            historic_data["id"].append(id)
+            historic_data["dates"].append(dates)
+            historic_data["prices"].append(prices)
+            historic_data["market_caps"].append(market_caps)
+            historic_data["total_volumes"].append(total_volumes)
 
     historic_data = pd.DataFrame.from_dict(historic_data)
     # the data series are of different lengths depending on the availability of historic data
@@ -148,7 +150,7 @@ def create_data_files(starting_index, ids_per_data_subset):
 create_data_files(0, 100)
 
 """
-This code can be used to test how long the API takes to process different kinds of calls. The result here is that
+The code below can be used to test how long the API takes to process different kinds of calls. The result here is that
 for a sample of 100 coins the average time for the first API call was 2.58 and for the second API call 9.06. Hence,
 if one assumes that 90% of the calls are getting filtered out by the > 1m USD condition for the market cap, it still
 makes sense to first run the filtering process and then the data retieval rather than downloading all data and then
