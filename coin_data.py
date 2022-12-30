@@ -18,9 +18,7 @@ index "create_data_files(starting_index = <new starting index>)".
 # os.system("pip3 install pandas")
 # os.system("python3 -m pip install -U pycoingecko")
 
-import time
-# import datetime
-import pandas as pd
+import time, pandas as pd, import datetime
 from pycoingecko import CoinGeckoAPI
 
 cg = CoinGeckoAPI()
@@ -96,7 +94,10 @@ def retrieving_data(ids):
         dates = []
         prices = []
         for i in data["prices"]:
-            dates.append(i[0])
+            # converting the Unix datestamps to the POSIX format without hours, minutes, and seconds
+            date = datetime.datetime.fromtimestamp(i[0])
+            date.replace(hour=0, minute=0, second=0, microsecond=0)
+            dates.append(date)
             prices.append(i[1])
         
         market_caps = []
@@ -136,7 +137,7 @@ def create_data_files(starting_index, ids_per_data_subset):
         # the retrieved index is already incremented since the incrementation happens after the ID is added to the IDs list
         # exporting the data in a data frame to a path specified by the user
         # the ending index is stored
-        retrieving_data(ids).to_csv(path + "/cg_data.csv" + str(ending_index), index=False)
+        retrieving_data(ids).to_csv(path + "/coingecko_data" + str(ending_index) + ".csv", index=False)
         starting_index = ending_index
 
         if starting_index >= list_length:

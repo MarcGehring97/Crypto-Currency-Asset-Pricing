@@ -1,39 +1,83 @@
 """
-This file contains the code needed to retrieve the <> data from https://exchange.blockchain.com/. In order to run
-this code you need to sign up there and retrieve an API secret that you insert at the respective position in the
-code below. For a Mac system the local IP address that is needed for retrieving the API secret can be retriebed by
-entering 
 
-Make sure by activating your API key by e-mail.
+Using blockchain.com's (formally blockchain.info) REST API
+
+charts can be found at
+https://www.blockchain.com/explorer/charts/
+
+the API documentation can be found at
+https://www.blockchain.com/explorer/api/charts_api
+
+
+the data series are available for different dates
+
+the disprepancy is small and the values are replaced by n/a for the time being
 
 """
-
-# enter "ipconfig getifaddr en0" into a Mac terminal to retrieve your local IP address
-# 192.168.178.148
-# enter "curl ifconfig.me" into a Max terminal to retrieve your public IP address
-# 89.247.174.99
-
-
-# Simple python websocket client
-# https://github.com/websocket-client/websocket-client
-
 # import os
-# os.system("pip3 install websocket-client")
+# os.system("python -m pip install requests")
 
-from websocket import create_connection
-options = {}
-options['origin'] = 'https://exchange.blockchain.com'
-url = "wss://ws.blockchain.info/mercury-gateway/v1/ws"
-ws = create_connection(url, **options)
-# substitute API_SECRET for your API secret
-# msg = '{"token": "{API_SECRET}", "channel": "auth"}'
-msg = '{"token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkFQSSJ9.eyJhdWQiOiJtZXJjdXJ5IiwidWlkIjoiYThjMjVjMDQtYmUwMi00NGQyLWI1MmQtZjJjNDhiNTkxY2U5IiwiaXNzIjoiYmxvY2tjaGFpbiIsInJkbyI6ZmFsc2UsImlhdCI6MTY3MjQzMTUzMywianRpIjoiYWE1MzU3ZWEtZmRmZC00NTkwLWFjZTAtOGI5NTljMGE5YTE0Iiwic2VxIjo2NDMyOTAxLCJ3ZGwiOnRydWV9.ID/zYJ71kKgITZVLeGnV2XcF6Msh3OPNncLtDLLUTdFvNt4Y/MMidz8CgErjWsqUmJobRvdQlwJpf0I4YU3Vy/0=", "action": "subscribe", "channel": "auth"}'
-ws.send(msg)
-result =  ws.recv()
-print(result)
-# this should return: { "seqnum":0, "event":"subscribed", "channel":"auth", "readOnly":false }
+import requests, datetime, pandas as pd, time
+
+charts = ["n-unique-addresses", "n-transactions"]
+# charts.append("n-payments")
+# the API for the chart n-payments us currently not available
+# as for Unix timestamps the timezone is UTC
+start_dates =["2011-01-01T12:00:00", "2017-01-01T12:00:00"]
+# start_dates.append("2023-01-01T12:00:00")
 
 
+print(time.mktime((2011, 1, 1, 12, 0, 0, 4, 1, -1)))
+print(time.mktime((2011, 1, 1, 12, 1, 1, 4, 1, -1)))
+
+start_date = datetime.datetime.fromtimestamp(time.mktime((2011, 1, 1, 12, 0, 0, 4, 1, -1)))
+end_date = datetime.datetime.fromtimestamp(time.time())
+
+print(end_date - start_date)
+
+dates_old = pd.date_range(start_date, end_date - datetime.timedelta(days=1), freq='d')
+dates = []
+for date in dates_old:
+    dates.append(date.to_pydatetime().replace(hour=0, minute=0, second=0, microsecond=0))
+print(dates)
 
 
-ws.close()
+historic_data = {"dates": dates, "unique_addresses": [], "transactions": []}
+# historic_data[payments] = []
+
+for chart in charts:
+    for start_date in start_dates:
+        # if one chooses a longer time period than 6 years, the API starts returning fewer data points
+        api_url = "https://api.blockchain.info/charts/" + chart + "?timespan=6years&start=" + start_date + "&format=json"
+        response = requests.get(api_url)
+        if response.status_code != 200:
+            print("There was an error")
+        # turn the downloaded data into a dictionary
+        data = response.json()
+        # the x-values are Unix timestamps
+        # checking if the starting and ending dates are correct
+        print(datetime.datetime.fromtimestamp(data["values"][0]["x"]))
+        print(datetime.datetime.fromtimestamp(data["values"][-1]["x"]))
+
+        # selecting the appropriate list in the dictionary
+        key = ""
+        match chart:
+            case "n-unique-addresses":
+                key = "unique_addresses"
+            case "n-transactions":
+                key = "transactions"
+            case "n-payments":
+                key = "payments"
+        
+        for i in range(len(data["values"])):
+            historic_data[key].append(data["values"][i]["y"])
+
+
+print(len(historic_data["dates"]))
+print(len(historic_data["unique_addresses"]))
+print(len(historic_data["transactions"]))
+historic_data = pd.DataFrame.from_dict(historic_data)
+
+path = "/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data"
+
+historic_data.to_csv(path + "/blockchain.com_data.csv", index=False)
