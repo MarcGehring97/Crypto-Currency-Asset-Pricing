@@ -19,7 +19,7 @@ index "create_data_files(starting_index = <new starting index>)".
 # os.system("python3 -m pip install -U pycoingecko")
 
 import time
-import datetime
+# import datetime
 import pandas as pd
 from pycoingecko import CoinGeckoAPI
 
@@ -85,7 +85,7 @@ def retrieving_data(ids):
     list_length = len(ids)
     for id in ids:
         # printing the progress 
-        progress = int(len(historic_data[id]) / list_length * 100)
+        progress = int(len(historic_data["id"]) / list_length * 100)
         if progress >= percentage_counter:
             percentage_counter += 1
             print(str(progress) + "%")
@@ -138,10 +138,51 @@ def create_data_files(starting_index, ids_per_data_subset):
 
         if starting_index + 1 == list_length:
             break
-    
+        
+        # this information can be used in case something goes wrong so that one does not have to start over
         if starting_index != 0:
             print("The last successful starting index is: " + str(starting_index))
 
 # calling the main function
 # to download the entire data set at once (not safe) insert "len(cg.get_coins_list())" for the second argument
 create_data_files(0, 100)
+
+"""
+This code can be used to test how long the API takes to process different kinds of calls. The result here is that
+for a sample of 100 coins the average time for the first API call was 2.58 and for the second API call 9.06. Hence,
+if one assumes that 90% of the calls are getting filtered out by the > 1m USD condition for the market cap, it still
+makes sense to first run the filtering process and then the data retieval rather than downloading all data and then
+using conditions to filter. This is how the average times for the two options compare: 2.58 + (1 - 0.1) * 9.06 = 3.49 
+< 9.06. One has to keep in mind, though, that the API may have stopped at one calls more often than at the other.
+"""
+
+# speed test for the two different API calls
+def speed_test(number_of_coins = 100):
+    start_date = time.mktime((2011, 1, 1, 12, 0, 0, 4, 1, -1))
+    end_date = time.time()
+    coin_list = cg.get_coins_list()[:number_of_coins]
+    total_time1 = 0
+    total_time2 = 0
+    counter = 0
+
+    for id in coin_list:
+        try: 
+            id = id["id"]
+            start1 = time.time()
+            cg.get_coin_by_id(id)["market_data"]["market_cap"]["usd"]
+            end1 = time.time()
+            start2 = time.time()
+            cg.get_coin_market_chart_range_by_id(id=id, vs_currency="usd", from_timestamp=start_date, to_timestamp=end_date)
+            end2 = time.time()
+        except:
+            print("Error, but continue")
+        counter += 1
+        total_time1 += end1 - start1
+        total_time2 += end2 - start2
+
+    print("The two API calls were tested for " + str(counter) + " coins")
+    print("The average time for the first API call was " + str(total_time1 / counter))
+    print("The average time for the second API call was " + str(total_time2 / counter))
+
+# speed_test()
+
