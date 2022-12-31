@@ -95,7 +95,8 @@ def retrieving_data(ids):
         prices = []
         for i in data["prices"]:
             # converting the Unix datestamps to the POSIX format without hours, minutes, and seconds
-            dates.append(datetime.date.fromtimestamp(i[0]))
+            # dividing by 1000 to convert from milliseconds to seconds
+            dates.append(datetime.date.fromtimestamp(i[0] / 1000))
             prices.append(i[1])
         
         market_caps = []
@@ -133,7 +134,7 @@ def create_data_files(starting_index, ids_per_data_subset):
         
         ids, ending_index = filtered_ids(coin_list, starting_index, ids_per_data_subset)
         # the retrieved index is already incremented since the incrementation happens after the ID is added to the IDs list
-        # exporting the data in a data frame to a path specified by the user
+        # exporting the data in a dataframe to a path specified by the user
         # the ending index is stored
         retrieving_data(ids).to_csv(path + "/coingecko_data" + str(ending_index) + ".csv", index=False)
         starting_index = ending_index
