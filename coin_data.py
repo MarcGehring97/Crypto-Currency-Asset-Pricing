@@ -18,7 +18,7 @@ index "create_data_files(starting_index = <new starting index>)".
 # os.system("pip3 install pandas")
 # os.system("python3 -m pip install -U pycoingecko")
 
-import time, pandas as pd, import datetime
+import time, pandas as pd, datetime
 from pycoingecko import CoinGeckoAPI
 
 cg = CoinGeckoAPI()
@@ -95,9 +95,7 @@ def retrieving_data(ids):
         prices = []
         for i in data["prices"]:
             # converting the Unix datestamps to the POSIX format without hours, minutes, and seconds
-            date = datetime.datetime.fromtimestamp(i[0])
-            date.replace(hour=0, minute=0, second=0, microsecond=0)
-            dates.append(date)
+            dates.append(datetime.date.fromtimestamp(i[0]))
             prices.append(i[1])
         
         market_caps = []
