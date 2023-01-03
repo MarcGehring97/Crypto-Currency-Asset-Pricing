@@ -21,9 +21,7 @@ The function "retrieve_data" has the following arguments:
            above. The default is "".
 """
 
-# import os
-# os.system("pip3 install pandas")
-# os.system("python3 -m pip install -U pycoingecko")
+__all__ = ["retrieve_data"]
 
 def retrieve_data(path="", starting_index=0, ids_per_data_subset=100, download=True, pro_key=""):
     import time, pandas as pd, datetime, pycoingecko, os
@@ -50,7 +48,7 @@ def retrieve_data(path="", starting_index=0, ids_per_data_subset=100, download=T
                     # filtering out coins with a current market capitalization of less than 1m USD
                     try:
                         if cg.get_coin_by_id(coin_list[index]["id"])["market_data"]["market_cap"]["usd"] >= 1000000:
-                            # this might take a while
+                            # this takes a while
                             ids.append(coin_list[index]["id"])
                     except:
                         print("There is a missing key for " + coin_list[index]["id"]+ " but the process will continue")
@@ -84,11 +82,11 @@ def retrieve_data(path="", starting_index=0, ids_per_data_subset=100, download=T
 
     # creating a data frame with the historic data (dates, prices, market capitalizations, and total volumes) for each coin ID
     def retrieving_data(ids):
-        # filling a dictionary with historic data (dates, prices, market capitalizations, and total volumes) for each coin ID
-        historic_data = {"id": [], "dates": [], "prices": [], "market_caps": [], "total_volumes": []}
         print("The retrieval progress for this data sub(set) is: ")
         percentage_counter = 1
         list_length = len(ids)
+        # filling a dictionary with historic data (dates, prices, market capitalizations, and total volumes) for each coin ID
+        historic_data = {"id": [], "dates": [], "prices": [], "market_caps": [], "total_volumes": []}
         for id in ids:
             # printing the progress 
             progress = int(len(historic_data["id"]) / list_length * 100)
@@ -96,34 +94,24 @@ def retrieve_data(path="", starting_index=0, ids_per_data_subset=100, download=T
                 percentage_counter += 1
                 print(str(progress) + "%")
             
+            
+
             # retrieving the data 
             data = cg.get_coin_market_chart_range_by_id(id=id, vs_currency="usd", from_timestamp=start_date, to_timestamp=end_date)
-            # this might take a while
-
-            dates = []
-            prices = []
-            for i in data["prices"]:
-                # converting the Unix datestamps to the POSIX format without hours, minutes, and seconds
-                # dividing by 1000 to convert from milliseconds to seconds
-                dates.append(datetime.date.fromtimestamp(i[0] / 1000))
-                prices.append(i[1])
-            
-            market_caps = []
-            for i in data["market_caps"]:
-                market_caps.append(i[1])
-            
-            total_volumes = []
-            for i in data["total_volumes"]:
-                total_volumes.append(i[1])
+            # this takes a while
 
             # filtering out any coins for which not all information is available
-            if len(dates) != 0 and len(prices) != 0 and len(market_caps) != 0 and len(total_volumes) != 0:
-                historic_data["id"].append(id)
-                historic_data["dates"].append(dates)
-                historic_data["prices"].append(prices)
-                historic_data["market_caps"].append(market_caps)
-                historic_data["total_volumes"].append(total_volumes)
+            if len(data["prices"]) != 0 and len(data["market_caps"]) != 0 and len(data["total_volumes"]) != 0:
+                for i in range(len(data["prices"])):
+                    historic_data["id"].append(id)
 
+                    historic_data["dates"].append(datetime.date.fromtimestamp(data["prices"][i][0] / 1000))
+                    # converting the Unix datestamps to the POSIX format without hours, minutes, and seconds
+                    # dividing by 1000 to convert from milliseconds to seconds
+                    historic_data["prices"].append(data["prices"][i][1])
+                    historic_data["market_caps"].append(data["market_caps"][i][1])
+                    historic_data["total_volumes"].append(data["total_volumes"][i][1])
+                
         historic_data = pd.DataFrame.from_dict(historic_data)
         # the data series are of different lengths depending on the availability of historic data
         return historic_data
@@ -133,7 +121,7 @@ def retrieve_data(path="", starting_index=0, ids_per_data_subset=100, download=T
         # retrieving a list of all coin IDs
         # the initial API call returns a list of dictionaries with detailed information
         
-        coin_list = cg.get_coins_list()
+        coin_list = cg.get_coins_list()[:5]
         list_length = len(coin_list)
         if ids_per_data_subset == "All":
             ids_per_data_subset = list_length
@@ -143,7 +131,8 @@ def retrieve_data(path="", starting_index=0, ids_per_data_subset=100, download=T
                 print("Returning all data.")
         dfs = []
 
-        file_names = os.listdir(path)
+        if path != "":
+            file_names = os.listdir(path)
 
         while True:
             # printing the progress 
@@ -168,21 +157,25 @@ def retrieve_data(path="", starting_index=0, ids_per_data_subset=100, download=T
                     else:
                         print("Could not create a new file.")
             else:
-                df.append(df)
+                dfs.append(df)
             starting_index = ending_index
 
             if starting_index >= list_length:
                 break
             
             print("The last successful ending index is: " + str(ending_index) + ".")
-        
+
         if not download:
-            return pd.concat(dfs)
+            if (len(dfs)) > 1:
+                return pd.concat(dfs)
+            else:
+                return dfs[0]
     
-    create_data_files(path, starting_index, ids_per_data_subset, download)
+    # here the function is called
+    return create_data_files(path, starting_index, ids_per_data_subset, download)
     
 # calling the main function
-# retrieve_data(ids_per_data_subset = "All", download = False)
+# print(retrieve_data(ids_per_data_subset = "All", download = False).head())
 # to download the entire data set at once (not safe) insert "All" for the argument "ids_per_data_subset"
 
 

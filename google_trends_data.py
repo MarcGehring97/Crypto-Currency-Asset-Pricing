@@ -44,4 +44,4 @@ def retrieve_data(path="", kw_list=["Bitcoin"], download=True):
     else: 
         return interest
 
-print(retrieve_data(download=False))
+# print(retrieve_data(download=False))

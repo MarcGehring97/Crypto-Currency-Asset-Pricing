@@ -9,14 +9,14 @@ This disprepancy is small, though.
 
 The function "retrieve_data" has the following arguments:
 - path: The path where the user intends to store the data. The default is "".
-- charts: A list of all charts for which the time series should be downloaded or returned.
+- charts: A list of all charts for which the time series should be downloaded or returned. The default are the two available charts of the
+          three that are needed.
 - download: Whether the user wants to download the data or get them returned. The default is True.
 """
 
-# import os
-# os.system("python -m pip install requests")
+__all__ = ["retrieve_data"]
 
-def retrieve_data (path="", charts, download=True):
+def retrieve_data(path="", charts=["n-unique-addresses", "n-transactions"], download=True):
 
     import requests, datetime, pandas as pd, time, os
 
@@ -40,7 +40,8 @@ def retrieve_data (path="", charts, download=True):
     for chart in charts:
         historic_data[chart] = []
 
-    file_names = os.listdir(path)
+    if path != "":
+        file_names = os.listdir(path)
 
     for chart in charts:
         for i in range(len(start_dates)):
@@ -91,16 +92,18 @@ def retrieve_data (path="", charts, download=True):
 
     historic_data = pd.DataFrame.from_dict(historic_data)
     if download:
-        if "blockchain.com_data.csv" not in file_names:
-            historic_data.to_csv(path + "/blockchain.com_data.csv", index=False)
+        if "blockchain_com_data.csv" not in file_names:
+            historic_data.to_csv(path + "/blockchain_com_data.csv", index=False)
         else:
             if input("The file already exists. Do you want to replace it? Y/N ") == "Y":
-                os.remove(path + "/blockchain.com_data.csv")
-                historic_data.to_csv(path + "/blockchain.com_data.csv", index=False)
+                os.remove(path + "/blockchain_com_data.csv")
+                historic_data.to_csv(path + "/blockchain_com_data.csv", index=False)
             else:
                 print("Could not create a new file.")
-        
     else: 
         return historic_data
 
-# retrieve_data()
+# print(retrieve_data(charts=["n-unique-addresses", "n-transactions"], download=False).head())
+
+# print(retrieve_data(charts=["n-unique-addresses", "n-transactions", "n-payments"], download=False).head())
+# throws an error
