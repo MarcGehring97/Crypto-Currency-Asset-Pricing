@@ -12,6 +12,8 @@ The function "retrieve_data" has the following arguments:
 - charts: A list of all charts for which the time series should be downloaded or returned. The default are the two available charts of the
           three that are needed.
 - download: Whether the user wants to download the data or get them returned. The default is True.
+
+The function "retrieve_data" returns a pd dateframe with columns for date, n-unique-addresses, and n-transactions
 """
 
 __all__ = ["retrieve_data"]
@@ -30,7 +32,7 @@ def retrieve_data(path="", charts=["n-unique-addresses", "n-transactions"], down
     end_date = datetime.datetime.fromtimestamp(time.time())
 
     # creating a list of all days between the start day and today
-    dates_old = pd.date_range(start_date, end_date + datetime.timedelta(days=1), freq='d')
+    dates_old = pd.date_range(start_date, end_date, freq='d')
     dates = []
     for date in dates_old:
         dates.append(date.to_pydatetime().date())
@@ -82,13 +84,13 @@ def retrieve_data(path="", charts=["n-unique-addresses", "n-transactions"], down
                         match_found = True
                         break
                 if match_found:
-                    historic_data[str(chart)].append(data["values"][i]["y"])
+                    historic_data[chart].append(data["values"][i]["y"])
                 else:
                     # otherwise a "NaN" is added when the date does not exist in the data
-                    historic_data[str(chart)].append("NaN")
+                    historic_data[chart].append("NaN")
 
     for chart in charts:
-        print("For the " + str(chart) + " data there are " + str(historic_data[str(chart)].count("NaN")) + " NaN values.")    
+        print("For the " + chart + " data there are " + str(historic_data[chart].count("NaN")) + " NaN values.")    
 
     historic_data = pd.DataFrame.from_dict(historic_data)
     if download:

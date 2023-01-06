@@ -9,6 +9,8 @@ The function "retrieve_data" has the following arguments:
 - metrics: A list of all metrics for which the time series should be downloaded or returned. The default are the two available metrics of the
           three that are needed.
 - download: Whether the user wants to download the data or get them returned. The default is True.
+
+The function "retrieve_data" returns a pd dataframe with columns for date, AdrActCnt and TxCnt
 """
 
 __all__ = ["retrieve_data"]
@@ -29,7 +31,8 @@ def retrieve_data(path="", metrics=["AdrActCnt", "TxCnt"], download=True, pro_ke
     # in the paper, they use only Bitcoin network data
     metrics = client.get_asset_metrics(assets="btc", metrics=metrics, start_time="2011-01-01", end_time=today, frequency="1d")
     metrics = pd.DataFrame(metrics)
-    metrics["time"] = pd.to_datetime(metrics["time"]).dt.date
+    metrics.insert(0, "date", pd.to_datetime(metrics["time"]).dt.date) 
+    metrics = metrics.drop(["time", "asset"], axis=1)
     
     if download:
         if "coin_metrics_data.csv" not in file_names:

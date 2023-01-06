@@ -6,11 +6,18 @@ The function "retrieve_data" has the following arguments:
 - path: The path where the user intends to store the data. The default is "".
 - kw_list: A list of all search keywords for which the time series should be downloaded or returned. The default is the keyword "Bitcoin".
 - download: Whether the user wants to download the data or get them returned. The default is True.
+
+The function "retrieve_data" returns a pd dataframe with columns for date and search_count
 """
 
 __all__ = ["retrieve_data"]
 
 def retrieve_data(path="", kw_list=["Bitcoin"], download=True):
+
+    import os, sys
+    PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+    sys.path.append(PROJECT_ROOT)
+    # so that this module can find pytrends
 
     from pytrends.request import TrendReq
     import datetime, os
@@ -27,7 +34,7 @@ def retrieve_data(path="", kw_list=["Bitcoin"], download=True):
     interest = pytrend.interest_over_time()
     interest = interest.reset_index(level=0)
     interest = interest.drop("isPartial", axis=1)
-    print(type(interest))
+    interest = interest.rename(columns={"Bitcoin": "search_count"})
 
     if path != "":
         file_names = os.listdir(path)
@@ -44,4 +51,4 @@ def retrieve_data(path="", kw_list=["Bitcoin"], download=True):
     else: 
         return interest
 
-# print(retrieve_data(download=False))
+# print(retrieve_data(download=False).head())

@@ -24,6 +24,7 @@ def merge(path="", download=True):
             
     # removing any duplicate rows
     data = data.drop_duplicates()
+    data = data.rename(columns={"dates": "date", "prices": "price", "market_caps": "market_cap", "total_volumes": "total_volume"})
 
     if download:
         if "cg_data.csv" not in file_names:
