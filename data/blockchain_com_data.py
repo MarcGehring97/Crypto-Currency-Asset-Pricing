@@ -32,12 +32,12 @@ def retrieve_data(path="", charts=["n-unique-addresses", "n-transactions"], down
     end_date = datetime.datetime.fromtimestamp(time.time())
 
     # creating a list of all days between the start day and today
-    dates_old = pd.date_range(start_date, end_date, freq='d')
-    dates = []
-    for date in dates_old:
-        dates.append(date.to_pydatetime().date())
+    days_old = pd.date_range(start_date, end_date, freq='d')
+    days = []
+    for date in days_old:
+        days.append(date.to_pydatetime().date())
 
-    historic_data = {"dates": dates}
+    historic_data = {"date": days}
     # add an empty list for every chart to store the time series data in
     for chart in charts:
         historic_data[chart] = []
@@ -62,25 +62,25 @@ def retrieve_data(path="", charts=["n-unique-addresses", "n-transactions"], down
             # the code below creates a date subset according to start date
             start_date = start_dates[i]
             end_date = end_dates[i]
-            dates_subset = []
+            days_subset = []
             # to track when the start date is
             begin = False
-            for date in dates:
-                if str(date) == start_date:
+            for day in days:
+                if str(day) == start_date:
                     begin = True
-                if str(date) == end_date:
-                    dates_subset.append(date)
+                if str(day) == end_date:
+                    days_subset.append(day)
                     begin = False
                 if begin:
-                    dates_subset.append(date)
+                    days_subset.append(day)
 
-            for date1 in dates_subset:
+            for day in days_subset:
                 # match the dates in the dates subset to all dates in the respective data set
                 match_found = False
                 for i in range(len(data["values"])):
-                    date2 = datetime.date.fromtimestamp(data["values"][i]["x"])
+                    date = datetime.date.fromtimestamp(data["values"][i]["x"])
                     # if there is a match
-                    if date1 == date2:
+                    if day == date:
                         match_found = True
                         break
                 if match_found:
@@ -93,6 +93,7 @@ def retrieve_data(path="", charts=["n-unique-addresses", "n-transactions"], down
         print("For the " + chart + " data there are " + str(historic_data[chart].count("NaN")) + " NaN values.")    
 
     historic_data = pd.DataFrame.from_dict(historic_data)
+
     if download:
         if "blockchain_com_data.csv" not in file_names:
             historic_data.to_csv(path + "/blockchain_com_data.csv", index=False)
@@ -105,7 +106,7 @@ def retrieve_data(path="", charts=["n-unique-addresses", "n-transactions"], down
     else: 
         return historic_data
 
-# print(retrieve_data(charts=["n-unique-addresses", "n-transactions"], download=False).head())
+print(retrieve_data(download=False).head())
 
 # print(retrieve_data(charts=["n-unique-addresses", "n-transactions", "n-payments"], download=False).head())
 # throws an error

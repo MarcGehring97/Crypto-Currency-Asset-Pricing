@@ -18,7 +18,7 @@ The function "retrieve_data" returns a pd dataframe with columns for date and tw
 
 __all__ = ["retrieve_data"]
 
-def retrieve_data(path="", query=["Bitcoin"], download=True, bearer_token = ""):
+def retrieve_data(path="", query=["Bitcoin"], download=True, bearer_token=""):
 
     from twarc import Twarc2
     import datetime, pandas as pd, os
@@ -26,7 +26,7 @@ def retrieve_data(path="", query=["Bitcoin"], download=True, bearer_token = ""):
     if path != "":
         file_names = os.listdir(path)
 
-    client = Twarc2(bearer_token)
+    client = Twarc2(bearer_token=bearer_token)
 
     # specify the start time in UTC for the time period you want Tweets from
     start_time = datetime.datetime(2011, 1, 1, 0, 0, 0, 0, datetime.timezone.utc)
@@ -66,9 +66,4 @@ def retrieve_data(path="", query=["Bitcoin"], download=True, bearer_token = ""):
     else: 
         return df
 
-# retrieve_data(path="/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data", bearer_token = "AAAAAAAAAAAAAAAAAAAAAOsglAEAAAAAn9jj0SN%2BPt2aXzVexX5IHQjTXC0%3DL1SggqS7x2hhObtUhiNwiRrtgBmvC2qSbrsrWJDQBmqW65n1vT")
-
-
-
-        
-    
+# print(retrieve_data(bearer_token="", download=False))

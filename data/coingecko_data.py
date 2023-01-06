@@ -27,6 +27,7 @@ The function "retrieve_data" returns a pd dataframe with columns for id, dates, 
 __all__ = ["retrieve_data"]
 
 def retrieve_data(path="", starting_index=0, ids_per_data_subset=100, download=True, pro_key=""):
+    
     import time, pandas as pd, datetime, pycoingecko, os
 
     if pro_key == "":
@@ -180,7 +181,7 @@ def retrieve_data(path="", starting_index=0, ids_per_data_subset=100, download=T
 # print(retrieve_data(ids_per_data_subset = "All", download = False).head())
 # to download the entire data set at once (not safe) insert "All" for the argument "ids_per_data_subset"
 
-retrieve_data(path="/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data/coingecko", starting_index=5644, ids_per_data_subset=100)
+retrieve_data(path="/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data/coingecko", starting_index=7122, ids_per_data_subset=100)
 
 """
 The code below can be used to test how long the API takes to process different kinds of calls. The result here is that

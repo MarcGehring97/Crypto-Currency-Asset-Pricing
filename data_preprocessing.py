@@ -41,7 +41,7 @@ cg_data =
 # the data contains the variables id, date, price, market_cap, and total_volume
 ue_data = 
 # the US Energy Information Administration data needs to be uploaded from a file
-# the average price data is available only at monthly frequency
+# the average price data is available only at monthly frequency => I hence used the respective value for all days in a given month
 # the data contains the variables date, average_price, net_generation, demand
 bc_data = bc.retrieve_data(charts=charts, download=False)
 # the function "retrieve_data" returns a pd dateframe with columns for date, n-unique-addresses, and n-transactions
@@ -51,6 +51,7 @@ gt_data = gt.retrieve_data(kw_list=kw_list, download=False)
 # the function "retrieve_data" returns a pd dataframe with columns for date and search_count
 tw_data = tw.retrieve_data(query=query, bearer_token=bearer_token, download=False)
 # the function "retrieve_data" returns a pd dataframe with columns for date and tweet_count
+# the data point for today is not available => this series has hence one data point fewer
 fr_data = fr.retrieve_data(series_ids=series_ids)
 # the function "retrieve_data" returns a pd dataframe with columns for date, DEXUSAL, DEXCAUS, DEXUSEU, DEXSIUS, DEXUSUK
 

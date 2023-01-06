@@ -14,13 +14,13 @@ __all__ = ["retrieve_data"]
 
 def retrieve_data(path="", kw_list=["Bitcoin"], download=True):
 
-    import os, sys
+    import os, sys, datetime
+    
     PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
     sys.path.append(PROJECT_ROOT)
     # so that this module can find pytrends
 
     from pytrends.request import TrendReq
-    import datetime, os
 
     pytrend = TrendReq()
 
@@ -51,4 +51,5 @@ def retrieve_data(path="", kw_list=["Bitcoin"], download=True):
     else: 
         return interest
 
-# print(retrieve_data(download=False).head())
+print(retrieve_data(download=False).head())
+#4388
