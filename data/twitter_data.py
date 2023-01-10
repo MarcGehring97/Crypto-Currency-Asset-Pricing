@@ -8,6 +8,8 @@ is more useful. It uses the library "twarc" (https://twarc-project.readthedocs.i
 useful information. The downloading and processing might take a couple of minutes to complete.
 
 The function "retrieve_data" has the following arguments:
+- start_date: The start date specified in the data_processing file.
+- end_date: The start date specified in the data_processing file.
 - path: The path where the user intends to store the data. The default is "".
 - query: The terms the user wants the count of tweets containing them per day of. The default is "Bitcoin".
 - download: Whether the user wants to download the data or get them returned. The default is True.
@@ -18,7 +20,7 @@ The function "retrieve_data" returns a pd dataframe with columns for date and tw
 
 __all__ = ["retrieve_data"]
 
-def retrieve_data(path="", query=["Bitcoin"], download=True, bearer_token=""):
+def retrieve_data(start_date, end_date, path="", query=["Bitcoin"], download=True, bearer_token=""):
 
     from twarc import Twarc2
     import datetime, pandas as pd, os
@@ -29,10 +31,12 @@ def retrieve_data(path="", query=["Bitcoin"], download=True, bearer_token=""):
     client = Twarc2(bearer_token=bearer_token)
 
     # specify the start time in UTC for the time period you want Tweets from
-    start_time = datetime.datetime(2011, 1, 1, 0, 0, 0, 0, datetime.timezone.utc)
+    start_date_dt = datetime.datetime.strptime(str(start_date), "%Y-%m-%d").date()
+    start_time = datetime.datetime(start_date_dt.year, start_date_dt.month, start_date_dt.day, 0, 0, 0, 0, datetime.timezone.utc)
 
     # today does not work so it has to be yesterday
-    yesterday = datetime.date.today() - datetime.timedelta(days=1)
+    end_date_dt = datetime.datetime.strptime(str(end_date), "%Y-%m-%d").date()
+    yesterday = end_date_dt - datetime.timedelta(days=1)
     end_time = datetime.datetime(yesterday.year, yesterday.month, yesterday.day, 0, 0, 0, 0, datetime.timezone.utc)
 
     # the counts_all method call the full-archive tweet counts endpoint to get tweet volume based on the query, start, and end times
@@ -66,4 +70,5 @@ def retrieve_data(path="", query=["Bitcoin"], download=True, bearer_token=""):
     else: 
         return df
 
-# print(retrieve_data(bearer_token="", download=False))
+import datetime
+# print(retrieve_data(start_date="2014-01-01", end_date=str(datetime.date.today()), bearer_token="", download=False))

@@ -12,6 +12,8 @@ imposed upon the number of API calls per minute of 50. The last successfully use
 call the main function again with a new starting index "retrieve_data(starting_index=<old ending index>)".
 
 The function "retrieve_data" has the following arguments:
+- start_date: The start date specified in the data_processing file. 
+- end_date: The start date specified in the data_processing file.
 - path: The path where the user intends to store the data. The default is "".
 - starting_index: The user can use the variable according to the description in the previous paragraph. The default is the overall starting
                   index of 0.
@@ -26,7 +28,7 @@ The function "retrieve_data" returns a pd dataframe with columns for id, dates, 
 
 __all__ = ["retrieve_data"]
 
-def retrieve_data(path="", starting_index=0, ids_per_data_subset=100, download=True, pro_key=""):
+def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_subset=100, download=True, pro_key=""):
     
     import time, pandas as pd, datetime, pycoingecko, os
 
@@ -40,7 +42,7 @@ def retrieve_data(path="", starting_index=0, ids_per_data_subset=100, download=T
 
     # this function takes in a crude list of coin IDs and returns a filtered list of a predefined size
     def filter_ids(coin_list, starting_index, ids_per_data_subset):
-        index = starting_index
+        index = int(starting_index)
         percentage_counter = 1
         ids = []
         print("The filtering progress for this data (sub)set is: ")
@@ -75,19 +77,16 @@ def retrieve_data(path="", starting_index=0, ids_per_data_subset=100, download=T
         return (ids, index)
 
     # Creating Unix timestamps
-    # the end_date is today
-    start_date = time.mktime((2011, 1, 1, 12, 0, 0, 4, 1, -1))
+    start_date_dt = datetime.datetime.strptime(str(start_date), "%Y-%m-%d").date()
+    end_date_dt = datetime.datetime.strptime(str(end_date), "%Y-%m-%d").date()
+    start_date = time.mktime((start_date_dt.year, start_date_dt.month, start_date_dt.day, 12, 0, 0, 4, 1, -1))
+    end_date = time.mktime((end_date_dt.year, end_date_dt.month, end_date_dt.day, 12, 0, 0, 4, 1, -1))
     # info regarding the arguments can be found at https://docs.python.org/3/library/time.html#time.struct_time
-    end_date = time.time()
-
-    # checking if the Unix dates are correct
-    # print(datetime.datetime.fromtimestamp(start_date))
-    # print(datetime.datetime.fromtimestamp(end_date))
 
     # creating a data frame with the historic data (dates, prices, market capitalizations, and total volumes) for each coin ID
     def retrieving_data(ids):
         print("The retrieval progress for this data sub(set) is: ")
-        percentage_counter = 1
+        percentage_counter = 0
         list_length = len(ids)
         counter = 0
         # filling a dictionary with historic data (dates, prices, market capitalizations, and total volumes) for each coin ID
@@ -181,7 +180,8 @@ def retrieve_data(path="", starting_index=0, ids_per_data_subset=100, download=T
 # print(retrieve_data(ids_per_data_subset = "All", download = False).head())
 # to download the entire data set at once (not safe) insert "All" for the argument "ids_per_data_subset"
 
-retrieve_data(path="/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data/coingecko", starting_index=7122, ids_per_data_subset=100)
+import datetime
+# retrieve_data(start_date="2014-01-01", end_date=str(datetime.date.today()), path="/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data/coingecko", starting_index=7936., ids_per_data_subset=100)
 
 """
 The code below can be used to test how long the API takes to process different kinds of calls. The result here is that

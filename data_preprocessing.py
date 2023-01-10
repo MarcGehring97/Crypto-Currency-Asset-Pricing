@@ -21,9 +21,14 @@ Furthermore:
 - The price data for the Bitman Antminer on https://keepa.com/#!search/1-bitmain%20antminer is not available for a long enough time period.
 """
 
-import data.coingecko_data as cg, data.blockchain_com_data as bc, data.coin_metrics_data as cm, data.us_eia_data as ue, data.google_trends_data as gt, data.twitter_data as tw, data.fred_data as fr
+import data.coingecko_data as cg, data.blockchain_com_data as bc, data.coin_metrics_data as cm, data.us_eia_data as ue, data.google_trends_data as gt, data.twitter_data as tw, data.fred_data as fr, convert_frequency as cf
+import datetime, pandas as pd, csv
 
+# parameters
+start_date = "2014-01-01"
+end_date = str(datetime.date.today())
 path = "/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data"
+path_coingecko = "/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data/coingecko"
 charts = ["n-unique-addresses", "n-transactions"]
 bearer_token = ""
 query = ["Bitcoin"]
@@ -32,32 +37,45 @@ query = ["Bitcoin"]
 metrics = ["AdrActCnt", "TxCnt"]
 # keyword list
 kw_list = ["Bitcoin"]
-series_ids = ["DEXUSAL", "DEXCAUS", "DEXUSEU", "DEXSIUS", "DEXUSUK"]
+series_ids = ["DGS1MO", "DEXUSAL", "DEXCAUS", "DEXUSEU", "DEXSIUS", "DEXUSUK"]
 # the last four letters describe the two currencies
 
-path_coingecko = "/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data/coingecko"
-cg_data = 
+"""
+cg_data = ""
 # the CoinGecko data needs to be uploaded from a file
 # the data contains the variables id, date, price, market_cap, and total_volume
-ue_data = 
+ue_data = ""
 # the US Energy Information Administration data needs to be uploaded from a file
 # the average price data is available only at monthly frequency => I hence used the respective value for all days in a given month
 # the data contains the variables date, average_price, net_generation, demand
-bc_data = bc.retrieve_data(charts=charts, download=False)
+bc_data = bc.retrieve_data(start_date=start_date, end_date=end_date, charts=charts, download=False)
 # the function "retrieve_data" returns a pd dateframe with columns for date, n-unique-addresses, and n-transactions
-cm_data = cm.retrieve_data(metrics=metrics, download=False)
+cm_data = cm.retrieve_data(mstart_date=start_date, end_date=end_date, etrics=metrics, download=False)
 # the function "retrieve_data" returns a pd dataframe with columns for date, AdrActCnt and TxCnt
-gt_data = gt.retrieve_data(kw_list=kw_list, download=False)
+gt_data = gt.retrieve_data(start_date=start_date, end_date=end_date, kw_list=kw_list, download=False)
 # the function "retrieve_data" returns a pd dataframe with columns for date and search_count
-tw_data = tw.retrieve_data(query=query, bearer_token=bearer_token, download=False)
+# the data is available only at monthly frquency => I hence used the respective value for all days in a given month
+tw_data = tw.retrieve_data(start_date=start_date, end_date=end_date, query=query, bearer_token=bearer_token, download=False)
 # the function "retrieve_data" returns a pd dataframe with columns for date and tweet_count
 # the data point for today is not available => this series has hence one data point fewer
-fr_data = fr.retrieve_data(series_ids=series_ids)
-# the function "retrieve_data" returns a pd dataframe with columns for date, DEXUSAL, DEXCAUS, DEXUSEU, DEXSIUS, DEXUSUK
-
+fr_data = fr.retrieve_data(start_date=start_date, end_date=end_date, series_ids=series_ids)
+# the function "retrieve_data" returns a pd dataframe with columns for date, DGS1MO, DEXUSAL, DEXCAUS, DEXUSEU, DEXSIUS, DEXUSUK
 # preprocessing the US EIA data
 us_eia_data = ue.retrieve_data()
 # look at the URL and the tables in the browser => what about missing values and the frequency?
+"""
+
+data = pd.read_csv(path + "/stock_factors_data.csv")
+print(data.head())
+
+weekly_data = cf.weekly_data(data, download=False)
+print(weekly_data.head())
+    
+
+# then take the last value that is not "NaN" as the data point
+
+
+
 
 # discrepancy between monthly and daily data
 
@@ -67,5 +85,11 @@ us_eia_data = ue.retrieve_data()
 # drop all rows that have null values in all columns
 # interest.dropna(how='all',axis=0, inplace=True)
 
+# converting the data to weekly data
 # formatting the dates to the same format
 # df = df.rename(columns={"Bitcoin": "seach_count"})
+
+
+# cryptocurrency_market_return = 
+
+

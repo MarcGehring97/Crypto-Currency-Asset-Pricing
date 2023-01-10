@@ -1,21 +1,26 @@
 """
 This file can be used to merge several downloaded data frames into one large data set. The user has to
 indicate the correct path destination where the data subsets are stored. The output is then stored in
-the same directory.
+the same directory. The merging and processing takes a long time.
 
 The function "merge" has the following arguments:
+- start_date: The start date specified in the data_processing file.
+- end_date: The start date specified in the data_processing file.
 - path: The path where the user intends to store the data. The default is "".
 - download: Whether the user wants to download the data or get them returned. The default is True.
 
-The function "merge" returns a a list of tuples with the cryptocurrency ID and a pd dataframe with columns for id, date, price, market_cap, and total_volume
+The function "merge" returns a pd dataframe with columns for id, date, price, market_cap, and total_volume
 """
 
-# reading all data subsets as data frames
-def merge(path="", download=True):
+__all__ = ["merge"]
 
-    import pandas as pd, os, time, datetime
+# reading all data subsets as data frames
+def merge(start_date, end_date, path="", download=True):
+
+    import pandas as pd, os, datetime, numpy as np
 
     file_names = os.listdir(path)
+
     dfs = []
     for file_name in file_names:
         if file_name[-4:] == ".csv" and file_name[-11:] != "cg_data.csv":
@@ -35,9 +40,9 @@ def merge(path="", download=True):
     for id in ids:
         df = data[data["id"] == id]
         dfs.append(df)
-
-    start_date = datetime.datetime.fromtimestamp(time.mktime((2011, 1, 1, 12, 0, 0, 4, 1, -1)))
-    end_date = datetime.datetime.fromtimestamp(time.time())
+    
+    start_date = datetime.datetime.strptime(str(start_date), "%Y-%m-%d").date()
+    end_date = datetime.datetime.strptime(str(end_date), "%Y-%m-%d").date()
 
     # creating a list of all days between the start day and today
     days_old = pd.date_range(start_date, end_date, freq='d')
@@ -46,28 +51,54 @@ def merge(path="", download=True):
     for date in days_old:
         days.append(date.to_pydatetime().date())
 
-    # checking for every ID dataframe whether all days are in the time series => if a day is missing, insert a "NaN"
-    output = []
+    # checking for every ID dataframe whether all days are in the time series => if a day is missing, insert a NaN
+    output_dfs = []
+    print("The progress is: ")
+    percentage_counter = 0
     for df in dfs:
+        # printing the progress
+        progress = int(df.index[0] / len(data) * 100)
+        if progress > percentage_counter:
+            percentage_counter += 1
+            print(str(progress) + "%")
         output_dict = {"date": days, "price": [], "market_cap": [], "total_volume": []}
         # iterating over all three variables
         for var in ["price", "market_cap", "total_volume"]:
+            min_date = str(datetime.date.today())
+            # the index in dataframes does not necessarily start at 0, especially when the dataframe got sliced => df.index
+            for i in df.index:
+                # if the next value is not equal to 0.0, the minimum date gets set
+                if df[var][i] != 0.0:
+                    min_date = str(df["date"][i])
+                    break
+                # if all data is 0.0 the min_date will still be today and all values will be turned into NaN
+            # match the days to all dates in the respective data set
             for day in days:
-                # match the days to all dates in the respective data set
+                # skipping all days where there is missing data
+                if datetime.datetime.strptime(str(day), "%Y-%m-%d").date() < datetime.datetime.strptime(min_date, "%Y-%m-%d").date():
+                    output_dict[var].append(np.nan)
+                    continue
                 match_found = False
-                for i in range(len(df)):
+                for i in df.index:
                     # if there is a match
                     # if the value of the variable is 0.0 it means that it is missing
-                    if str(day) == df["date"][i] and df[var][i] != 0.0:
+                    if str(day) == str(df["date"][i]) and df[var][i] != 0.0:
                         match_found = True
                 if match_found:
                     output_dict[var].append(df[var][i])
                 else:
-                    # otherwise a "NaN" is added when the date does not exist in the data or when the data is "null"
-                    output_dict[var].append("NaN")
+                    # otherwise a NaN is added when the date does not exist in the data or when the data is "null"
+                    output_dict[var].append(np.nan)
         output_df = pd.DataFrame(output_dict)
-        output.append((id, output_df))
+        id = df["id"][df.index[0]]
+        # adding the ID
+        output_df.insert(0, "id", [id] * len(output_df))
+        output_dfs.append(output_df)
+    print("100%")
 
+    output = pd.concat(output_dfs)
+    output = output.reset_index(drop=True)
+    
     if download:
         if "cg_data.csv" not in file_names:
             output.to_csv(path + "/cg_data.csv", index=False)
@@ -80,4 +111,5 @@ def merge(path="", download=True):
     else:
         return output
 
-merge(path="/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data")
+import datetime
+merge(start_date="2014-01-01", end_date=str(datetime.date.today()),path="/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data/coingecko")

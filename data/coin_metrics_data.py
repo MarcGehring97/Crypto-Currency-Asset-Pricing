@@ -5,6 +5,8 @@ https://github.com/coinmetrics/api-client-python/blob/master/examples/notebooks/
 available metrics plus the abbreviations can be found at https://docs.coinmetrics.io/info/metrics.
 
 The function "retrieve_data" has the following arguments:
+- start_date: The start date specified in the data_processing file. 
+- end_date: The start date specified in the data_processing file.
 - path: The path where the user intends to store the data. The default is "".
 - metrics: A list of all metrics for which the time series should be downloaded or returned. The default are the two available metrics of the
           three that are needed.
@@ -15,9 +17,9 @@ The function "retrieve_data" returns a pd dataframe with columns for date, AdrAc
 
 __all__ = ["retrieve_data"]
 
-def retrieve_data(path="", metrics=["AdrActCnt", "TxCnt"], download=True, pro_key=""):
+def retrieve_data(start_date, end_date, path="", metrics=["AdrActCnt", "TxCnt"], download=True, pro_key=""):
     
-    import pandas as pd, datetime, os
+    import pandas as pd, os
     from coinmetrics.api_client import CoinMetricsClient
 
     client = CoinMetricsClient(pro_key)
@@ -28,9 +30,9 @@ def retrieve_data(path="", metrics=["AdrActCnt", "TxCnt"], download=True, pro_ke
     # "catag_assets()" returns a list of dictionaries that contain data about the coins
     # On the 2nd of January 2020 there were 3020 assets
 
-    today = str(datetime.date.today())
+    
     # in the paper, they use only Bitcoin network data
-    metrics = client.get_asset_metrics(assets="btc", metrics=metrics, start_time="2011-01-01", end_time=today, frequency="1d")
+    metrics = client.get_asset_metrics(assets="btc", metrics=metrics, start_time=start_date, end_time=end_date, frequency="1d")
     metrics = pd.DataFrame(metrics)
     metrics.insert(0, "date", pd.to_datetime(metrics["time"]).dt.date) 
     metrics = metrics.drop(["time", "asset"], axis=1)
@@ -47,4 +49,5 @@ def retrieve_data(path="", metrics=["AdrActCnt", "TxCnt"], download=True, pro_ke
     else: 
         return metrics
 
-print(retrieve_data(download=False).head())
+import datetime
+# print(retrieve_data(start_date="2014-01-01", end_date=str(datetime.date.today()), download=False).head())
