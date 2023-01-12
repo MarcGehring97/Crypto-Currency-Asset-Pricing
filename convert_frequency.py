@@ -1,8 +1,8 @@
 """
 This file can be used to convert daily to weekly data. The idea is the following: The program runs through all years in the provided data set
 separately. In every year, it defines a week after seven days have passed; there are some extra things to consider for the last week. In every
-week, the program runs through all columns from the last day to the first day of a given week and adds the first non-NaN value to the output 
-row that is in turn added to the output dataframe.
+week, the program runs through all columns in reverse temporal order and adds the first non-NaN value to the output 
+row that is in turn added to the output dataframe. For this function, it is important that the input data does not include any missing days.
 
 The function "retrieve_data" has the following arguments:
 - path: The path where the user intends to store the data. The default is "".

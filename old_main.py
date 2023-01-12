@@ -22,7 +22,7 @@ Furthermore:
 """
 
 import data.coingecko_data as cg, data.blockchain_com_data as bc, data.coin_metrics_data as cm, data.us_eia_data as ue, data.google_trends_data as gt, data.twitter_data as tw, data.fred_data as fr, convert_frequency as cf
-import datetime, pandas as pd, csv
+import datetime, pandas as pd
 
 # parameters
 start_date = "2014-01-01"
@@ -65,19 +65,32 @@ us_eia_data = ue.retrieve_data()
 # look at the URL and the tables in the browser => what about missing values and the frequency?
 """
 
-data = pd.read_csv(path + "/stock_factors_data.csv")
-print(data.head())
 
-weekly_data = cf.weekly_data(data, download=False)
-print(weekly_data.head())
-    
 
-# then take the last value that is not "NaN" as the data point
+# cryptocurrency market return
 
 
 
+# the base data are pd dataframes where the date is in the first row and all other variables in the following columns
 
-# discrepancy between monthly and daily data
+# construct weekly coin returns
+
+# A. Size Characteristics
+
+# data of the risk-free rate
+rf_daily = fr.retrieve_data(start_date=start_date, end_date=end_date, series_ids=["DGS1MO"])
+rf_weekly = cf.weekly_data(rf_daily, download=False)
+
+def sort(data):
+
+
+
+
+
+
+
+
+
 
 # looking at rows where all values are not equal to 0
 # interest = interest[(interest != 0).all(1)]
@@ -93,3 +106,15 @@ print(weekly_data.head())
 # cryptocurrency_market_return = 
 
 
+
+
+
+
+data = pd.read_csv(path + "/stock_factors_data.csv")
+print(data.head())
+
+weekly_data = cf.weekly_data(data, download=False)
+print(weekly_data.head())
+  
+start_date = "2014-01-01"
+end_date = str(datetime.date.today())

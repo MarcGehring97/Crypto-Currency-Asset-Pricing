@@ -181,7 +181,7 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
 # to download the entire data set at once (not safe) insert "All" for the argument "ids_per_data_subset"
 
 import datetime
-# retrieve_data(start_date="2014-01-01", end_date=str(datetime.date.today()), path="/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data/coingecko", starting_index=7936., ids_per_data_subset=100)
+retrieve_data(start_date="2014-01-01", end_date=str(datetime.date.today()), path="/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data/coingecko", starting_index=1, ids_per_data_subset=100)
 
 """
 The code below can be used to test how long the API takes to process different kinds of calls. The result here is that

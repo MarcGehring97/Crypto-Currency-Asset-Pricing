@@ -10,9 +10,8 @@ This disprepancy is small, though.
 The function "retrieve_data" has the following arguments:
 - start_date: The start date specified in the data_processing file. 
 - end_date: The start date specified in the data_processing file.
+- charts: A list of all charts for which the time series should be downloaded or returned.
 - path: The path where the user intends to store the data. The default is "".
-- charts: A list of all charts for which the time series should be downloaded or returned. The default are the two available charts of the
-          three that are needed.
 - download: Whether the user wants to download the data or get them returned. The default is True.
 
 The function "retrieve_data" returns a pd dateframe with columns for date, n-unique-addresses, and n-transactions
@@ -20,7 +19,7 @@ The function "retrieve_data" returns a pd dateframe with columns for date, n-uni
 
 __all__ = ["retrieve_data"]
 
-def retrieve_data(start_date, end_date, path="", charts=["n-unique-addresses", "n-transactions"], download=True):
+def retrieve_data(start_date, end_date, charts, path="", download=True):
 
     import requests, datetime, pandas as pd, time, os, numpy as np
     from dateutil.relativedelta import relativedelta
@@ -109,7 +108,7 @@ def retrieve_data(start_date, end_date, path="", charts=["n-unique-addresses", "
         return historic_data
 
 import datetime
-# print(retrieve_data(start_date="2014-01-01", end_date=str(datetime.date.today()), download=False).head())
+# print(retrieve_data(start_date="2014-01-01", end_date=str(datetime.date.today()), charts=["n-unique-addresses", "n-transactions"], download=False).head())
 
 # print(retrieve_data(charts=["n-unique-addresses", "n-transactions", "n-payments"], download=False).head())
 # throws an error
