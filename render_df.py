@@ -5,15 +5,12 @@ __all__ = ["pdf_from_df"]
 
 def pdf_from_df(df):
 
-    import io, argparse, os, subprocess
-
-    
+    import io, os, subprocess, easydict
 
     def convertToLaTeX(df, alignment="c"):
-        """
-        Convert a pandas dataframe to a LaTeX tabular.
-        Prints labels in bold, does not use math mode
-        """
+        # this function converts a df dataframe to a LaTeX tabular
+        # it prints labels in bold and does not use math mode
+        
         numColumns = df.shape[1]
         numRows = df.shape[0]
         output = io.StringIO()
@@ -27,24 +24,18 @@ def pdf_from_df(df):
             output.write("\\textbf{%s} & %s\\\\\n"
                         % (df.index[i], " & ".join([str(val) for val in df.iloc[i]])))
         #Write footer
-        output.write("\\end{tabular}\\end{document}")
+        output.write("\\pagenumbering{gobble}\\end{tabular}\\end{document}")
         return output.getvalue()
 
     content = convertToLaTeX(df)
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--course')
-    parser.add_argument('-t', '--title')
-    parser.add_argument('-n', '--name',) 
-    parser.add_argument('-s', '--school', default='My U')
-
-    args = parser.parse_args()
+    args = easydict.EasyDict({})
 
     with open('cover.tex','w') as f:
         f.write(content%args.__dict__)
 
     cmd = ['pdflatex', '-interaction', 'nonstopmode', 'cover.tex']
-    proc = subprocess.Popen(cmd)
+    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
     proc.communicate()
 
     retcode = proc.returncode
@@ -55,10 +46,3 @@ def pdf_from_df(df):
     os.unlink('cover.tex')
     os.unlink('cover.log')
     os.unlink('cover.aux')
-
-    from wand.image import Image as WImage
-    img = WImage(filename=os.getcwd() + "cover.pdf", resolution=100)
-    img
-
-
-
