@@ -3,15 +3,18 @@ This file can be used to convert daily to weekly data. The idea is the following
 separately. In every year, it defines a week after seven days have passed; there are some extra things to consider for the last week. In every
 week, the program runs through all columns in reverse temporal order and adds the first non-NaN value to the output 
 row that is in turn added to the output dataframe. For this function, it is important that the input data does not include any missing days.
+
 The function "retrieve_data" has the following arguments:
-- path: The path where the user intends to store the data. The default is "".
 - data: The data, for which to turn daily into weekly data points.
+- start_date: The start date specified in the data_processing file.
+- end_date: The start date specified in the data_processing file.
 - name: The name of the data set. The default is "".
+- path: The path where the user intends to store the data. The default is "".
 - download: Whether the user wants to download the data or get them returned. The default is True.
 The function "weekly_data" returns a pd dateframe with columns for year/week (replacing the date column) and the other given columns
 """
 
-def weekly_data(data, name="", path="", download=True):
+def weekly_data(data, start_date, end_date, name="", path="", download=True):
     
     import datetime, pandas as pd, os, numpy as np
 

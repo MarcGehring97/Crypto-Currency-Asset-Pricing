@@ -19,12 +19,12 @@ def merge(start_date, end_date, path="", download=True):
 
     import pandas as pd, os, datetime, numpy as np
 
-    file_names = os.listdir(path)
+    file_names = os.listdir(path + "/coingecko")
 
     dfs = []
     for file_name in file_names:
         if file_name[-4:] == ".csv" and file_name[-11:] != "cg_data.csv":
-            df = pd.read_csv(path + "/" + file_name)
+            df = pd.read_csv(path + "/coingecko" + "/" + file_name)
             dfs.append(df)
 
     # combining all dataframes in the dfs list
@@ -94,6 +94,7 @@ def merge(start_date, end_date, path="", download=True):
         # adding the ID
         output_df.insert(0, "id", [id] * len(output_df))
         output_dfs.append(output_df)
+        print("The current ID is " + id + ".")
     print("100%")
 
     output = pd.concat(output_dfs)
@@ -111,5 +112,5 @@ def merge(start_date, end_date, path="", download=True):
     else:
         return output
 
-import datetime
-merge(start_date="2014-01-01", end_date=str(datetime.date.today()),path="/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data/coingecko")
+# import datetime
+# merge(start_date="2014-01-01", end_date=str(datetime.date.today()),path="/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data/coingecko")

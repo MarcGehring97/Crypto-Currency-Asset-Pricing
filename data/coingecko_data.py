@@ -148,14 +148,19 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
             # if the last ending index in the file name is 700, for example, and the process stopped, it can be continued by calling create_data_files() with a starting_index of 700
             # it can be the case, though, that if you download different data packages on different days, the list of coins has changed
             
+            coingecko_path = path + "/coingecko"
+            # creating the folder /coingecko_data in the data folder
+            if not os.path.exists(coingecko_path):
+                os.makedirs(coingecko_path)
+
             df = retrieving_data(ids)
             if download:
                 if "coingecko_data" + str(ending_index) + ".csv" not in file_names:
-                    df.to_csv(path + "/coingecko_data" + str(ending_index) + ".csv", index=False)
+                    df.to_csv(coingecko_path + "/coingecko_data" + str(ending_index) + ".csv", index=False)
                 else:
                     if input("The file already exists. Do you want to replace it? Y/N ") == "Y":
                         os.remove("/coingecko_data" + str(ending_index) + ".csv")
-                        df.to_csv(path + "/coingecko_data" + str(ending_index) + ".csv", index=False)
+                        df.to_csv(coingecko_path + "/coingecko_data" + str(ending_index) + ".csv", index=False)
                     else:
                         print("Could not create a new file.")
             else:
@@ -180,8 +185,8 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
 # print(retrieve_data(ids_per_data_subset = "All", download = False).head())
 # to download the entire data set at once (not safe) insert "All" for the argument "ids_per_data_subset"
 
-import datetime
-retrieve_data(start_date="2014-01-01", end_date=str(datetime.date.today()), path="/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data/coingecko", starting_index=11561, ids_per_data_subset=100)
+# import datetime
+# retrieve_data(start_date="2014-01-01", end_date=str(datetime.date.today()), path="/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data/coingecko", starting_index=0, ids_per_data_subset=100)
 
 """
 The code below can be used to test how long the API takes to process different kinds of calls. The result here is that
