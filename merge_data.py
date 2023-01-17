@@ -31,7 +31,7 @@ def merge(start_date, end_date, path="", download=True):
     data = pd.concat(dfs)
             
     # removing any duplicate rows
-    data = data.drop_duplicates()
+    # data = data.drop_duplicates()
     data = data.rename(columns={"dates": "date", "prices": "price", "market_caps": "market_cap", "total_volumes": "total_volume"})
 
     # creating single dataframes for every ID and also comparing the dates to all days in the time period
@@ -62,33 +62,39 @@ def merge(start_date, end_date, path="", download=True):
             percentage_counter += 1
             print(str(progress) + "%")
         output_dict = {"date": days, "price": [], "market_cap": [], "total_volume": []}
-        # iterating over all three variables
-        for var in ["price", "market_cap", "total_volume"]:
-            min_date = str(datetime.date.today())
-            # the index in dataframes does not necessarily start at 0, especially when the dataframe got sliced => df.index
+        # finding the first date where all column values are non-missing to skip all previous rows
+        min_date = str(datetime.date.today())
+        # the index in dataframes does not necessarily start at 0, especially when the dataframe got sliced => df.index
+        for i in df.index:
+            # if the next value is not equal to 0.0, the minimum date gets set
+            if df["price"][i] != 0.0 and df["price"][i] != "" and df["market_cap"][i] != 0.0 and df["market_cap"][i] != "" and df["total_volume"][i] != 0.0 and df["total_volume"][i] != "":
+                min_date = str(df["date"][i])
+                break
+            # if all data is 0.0 the min_date will still be today and all values will be turned into NaN
+        # match the days to all dates in the respective data set
+        for day in days:
+            # skipping all days where there is missing data
+            if datetime.datetime.strptime(str(day), "%Y-%m-%d").date() < datetime.datetime.strptime(min_date, "%Y-%m-%d").date():
+                output_dict["price"].append(np.nan)
+                output_dict["market_cap"].append(np.nan)
+                output_dict["total_volume"].append(np.nan)
+                continue
+            match_found = False
             for i in df.index:
-                # if the next value is not equal to 0.0, the minimum date gets set
-                if df[var][i] != 0.0:
-                    min_date = str(df["date"][i])
-                    break
-                # if all data is 0.0 the min_date will still be today and all values will be turned into NaN
-            # match the days to all dates in the respective data set
-            for day in days:
-                # skipping all days where there is missing data
-                if datetime.datetime.strptime(str(day), "%Y-%m-%d").date() < datetime.datetime.strptime(min_date, "%Y-%m-%d").date():
-                    output_dict[var].append(np.nan)
-                    continue
-                match_found = False
-                for i in df.index:
-                    # if there is a match
-                    # if the value of the variable is 0.0 it means that it is missing
-                    if str(day) == str(df["date"][i]) and df[var][i] != 0.0:
-                        match_found = True
-                if match_found:
-                    output_dict[var].append(df[var][i])
-                else:
-                    # otherwise a NaN is added when the date does not exist in the data or when the data is "null"
-                    output_dict[var].append(np.nan)
+                # if the value of the variable is 0.0 it means that it is missing
+                # only adding rows if all three column values are non-missing
+                if str(day) == str(df["date"][i]) and df["price"][i] != 0.0 and df["price"][i] != "" and df["market_cap"][i] != 0.0 and df["market_cap"][i] != "" and df["total_volume"][i] != 0.0 and df["total_volume"][i] != "":
+                    match_found = True
+            # if there is a match
+            if match_found:
+                output_dict["price"].append(df["price"][i])
+                output_dict["market_cap"].append(df["market_cap"][i])
+                output_dict["total_volume"].append(df["total_volume"][i])
+            else:
+                # otherwise a NaN is added when the date does not exist in the data or when the data is "null"
+                output_dict["price"].append(np.nan)
+                output_dict["market_cap"].append(np.nan)
+                output_dict["total_volume"].append(np.nan)
         output_df = pd.DataFrame(output_dict)
         id = df["id"][df.index[0]]
         # adding the ID
@@ -113,4 +119,4 @@ def merge(start_date, end_date, path="", download=True):
         return output
 
 # import datetime
-# merge(start_date="2014-01-01", end_date=str(datetime.date.today()),path="/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data/coingecko")
+# merge(start_date="2014-01-01", end_date=str(datetime.date.today()),path=r"/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data")

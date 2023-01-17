@@ -29,9 +29,10 @@ def weekly_data(data, start_date, end_date, name="", path="", download=True):
         years.append(year)
         year = str(int(year) + 1)
   
-    weekly_data = data[0:0]
     # keeping the structure of the previous data file
-    weekly_data.insert(0, "year/week", [])
+    weekly_data = data[0:0]
+    weekly_data.insert(0, "year", [])
+    weekly_data.insert(1, "week", [])
     weekly_data = weekly_data.drop("date", axis=1)
   
     for year in years:
@@ -60,11 +61,13 @@ def weekly_data(data, start_date, end_date, name="", path="", download=True):
                 
                 # creating an empty row
                 new_data_row = data[0:0]
-                new_data_row.insert(0, "year/week", [])
+                new_data_row.insert(0, "year", [])
+                new_data_row.insert(1, "week", [])
                 new_data_row = new_data_row.drop("date", axis=1)
 
                 columns = new_data_row.columns.tolist()
-                columns.remove("year/week")
+                columns.remove("year")
+                columns.remove("week")
 
                 for column in columns:
                     match_found = False
@@ -86,7 +89,8 @@ def weekly_data(data, start_date, end_date, name="", path="", download=True):
                         new_data_row[column] = np.nan
                 
                 # inserting the week
-                new_data_row["year/week"] = year + "/" + str(week)
+                new_data_row["year"] = year
+                new_data_row["week"] = str(week)
                             
                 # adding the row to the output dataframe
                 weekly_data = pd.concat([weekly_data, new_data_row])

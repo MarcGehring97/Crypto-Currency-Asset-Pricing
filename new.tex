@@ -1,0 +1,54 @@
+\documentclass{article}
+\usepackage{booktabs}
+\usepackage{ragged2e}
+\usepackage{multirow}
+
+\begin{document}
+    \begin{center}
+        \textbf{
+        Table I
+        \\
+        Summary Statistics
+        }
+        \begin{justify}
+            \footnotesize{
+            Panel A reports the number of coins, the mean and median of market capitalization, and the mean and median of daily trading price volume by year. Panel B reports the characteristics of coin market index returns, Bitcoin returns, Ripple returns, and Ethereum returns. The coin market index returns, Bitcoin returns, and Ripple returns start from the first week of 2014. The Ethereum returns start from the $32^{nd}$ week of 2015.
+            }
+        \end{justify}
+        \-
+        \begin{tabular}{lccccr}
+            \toprule
+            \multicolumn{6}{c}{Panel A. Characteristics by Year} \\
+            \midrule
+            \multicolumn{2}{c}{} & 
+            \multicolumn{2}{c}{Market Cap (mil)} &
+            \multicolumn{2}{c}{Volume (thous)}
+            \\
+            \cmidrule(lr){3-4} \cmidrule(lr){5-6} 
+            Year & Number & Mean & Median & Mean & Median
+            \\
+            \midrule
+            2014 & 0.67  & 0.8 & 0.729  & 0.75 & 1
+            \\
+            2015 & 0.8 & 0.9 & 0.847 & 0.85 & 1
+            \\[0.2cm]
+            Full & 0.8 & 0.9 & 0.847 & 0.85 & 1
+            \\
+            \midrule
+            \multicolumn{6}{c}{Panel B. Return Characteristics} \\
+            \midrule
+            {} & Mean & Median & \textit{SD} & Skewness & Kurtosis
+            \\
+            \midrule
+            Coin Market Return & 0.67  & 0.8 & 0.729  & 0.75 & 1
+            \\
+            Bitcoin Return & 0.8 & 0.9 & 0.847 & 0.85 & 1
+            \\
+            Ripple Return & 0.8 & 0.9 & 0.847 & 0.85 & 1
+            \\
+            Ethereum Return & 0.8 & 0.9 & 0.847 & 0.85 & 1
+            \\
+            \bottomrule
+        \end{tabular}
+    \end{center}
+\end{document}
