@@ -30,7 +30,7 @@ __all__ = ["retrieve_data"]
 
 def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_subset=100, download=True, pro_key=""):
     
-    import time, pandas as pd, datetime, pycoingecko, os
+    import time, pandas as pd, datetime, pycoingecko, os, numpy as np
 
     if pro_key == "":
         cg = pycoingecko.CoinGeckoAPI()
@@ -84,7 +84,7 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
     # info regarding the arguments can be found at https://docs.python.org/3/library/time.html#time.struct_time
 
     # creating a data frame with the historic data (dates, prices, market capitalizations, and total volumes) for each coin ID
-    def retrieving_data(ids):
+    def retrieving_cg_data(ids):
         print("The retrieval progress for this data sub(set) is: ")
         percentage_counter = 0
         list_length = len(ids)
@@ -105,6 +105,7 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
 
             # filtering out any coins for which not all information is available
             if len(data["prices"]) != 0 and len(data["market_caps"]) != 0 and len(data["total_volumes"]) != 0 and len(data["prices"]) == len(data["market_caps"]) == len(data["total_volumes"]):
+                # here, we can make the assumption that the dates for all three different variables are the same
                 for i in range(len(data["prices"])):
                     historic_data["id"].append(id)
                     historic_data["dates"].append(datetime.date.fromtimestamp(data["prices"][i][0] / 1000))
@@ -113,7 +114,35 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
                     historic_data["prices"].append(data["prices"][i][1])
                     historic_data["market_caps"].append(data["market_caps"][i][1])
                     historic_data["total_volumes"].append(data["total_volumes"][i][1])
-                
+            elif len(data["prices"]) != 0 and len(data["market_caps"]) != 0 and len(data["total_volumes"]) != 0:
+                # identifying the variable with the most date data points
+                # the assumption is that the variable with the most date data points also include all dates from the other variables
+                max_length = 0
+                max_var = ""
+                vars = ["prices", "market_caps", "total_volumes"]
+                for var in vars:
+                    if len(data[var]) >= max_length:
+                        max_length = len(data[var])
+                        max_var = var
+                dates = []
+                for i in range(len(data[max_var])):
+                    dates.append(data[max_var][i][0])
+                    historic_data["id"].append(id)
+                    historic_data["dates"].append(datetime.date.fromtimestamp(data[max_var][i][0] / 1000))
+                    # converting the Unix datestamps to the POSIX format without hours, minutes, and seconds
+                    # dividing by 1000 to convert from milliseconds to seconds
+                    historic_data[max_var].append(data[max_var][i][1])
+                vars.remove(max_var)
+                for date in dates:
+                    for var in vars:
+                        match_found = False
+                        for i in range(len(data[var])):
+                            if data[var][i][0] == date:
+                                match_found = True
+                                historic_data[var].append(data[var][i][1])
+                        if not match_found:
+                            historic_data[var].append(np.nan)
+
         historic_data = pd.DataFrame.from_dict(historic_data)
         # the data series are of different lengths depending on the availability of historic data
         return historic_data
@@ -153,7 +182,7 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
             if not os.path.exists(coingecko_path):
                 os.makedirs(coingecko_path)
 
-            df = retrieving_data(ids)
+            df = retrieving_cg_data(ids)
             if download:
                 if "coingecko_data" + str(ending_index) + ".csv" not in file_names:
                     df.to_csv(coingecko_path + "/coingecko_data" + str(ending_index) + ".csv", index=False)
@@ -186,7 +215,7 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
 # to download the entire data set at once (not safe) insert "All" for the argument "ids_per_data_subset"
 
 # import datetime
-# retrieve_data(start_date="2014-01-01", end_date=str(datetime.date.today()), path="/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data/coingecko", starting_index=0, ids_per_data_subset=100)
+# retrieve_data(start_date="2014-01-01", end_date="2023-01-12", path="/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data/coingecko", starting_index=0, ids_per_data_subset=100)
 
 """
 The code below can be used to test how long the API takes to process different kinds of calls. The result here is that
