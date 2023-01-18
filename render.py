@@ -1,22 +1,23 @@
 """
-This file can be used to merge several downloaded data frames into one large data set. The user has to
-indicate the correct path destination where the data subsets are stored. The output is then stored in
-the same directory. The merging and processing takes a long time.
+This file can be used to create a PDF of the different tables and graphs found in the paper. Each function takes in the required data, computes
+the statistics or time series, and inserts them in the appropriate LaTeX files to ultimately create a PDF file. The PDF file can be shown in
+the main.ipynb file.
 
-The function "merge" has the following arguments:
+The function "render_summary_statistics" has the following arguments:
 - start_date: The start date specified in the data_processing file.
 - end_date: The start date specified in the data_processing file.
-- path: The path where the user intends to store the data. The default is "".
-- download: Whether the user wants to download the data or get them returned. The default is True.
+- daily_trading_data: This data is needed to compute the statistics for Bitcoin, Ethereum, and Ripple in Panel B
+- market_weekly_returns: This data is needed to compute the statistics for the market returns in Panel B
+- coins_weekly_returns: This data is needed to compute the statistics for each year in Panel A
 
-The function "merge" returns a pd dataframe with columns for id, date, price, market_cap, and total_volume
+The function "render_summary_statistics" adds the PDF file "cover.pdf" that can be rendered below the code in the main.ipynb file.
 """
 
 __all__ = ["render_summary_statistics"]
 
 def render_summary_statistics(start_date, end_date, daily_trading_data, market_weekly_returns, coins_weekly_returns):
 
-    import io, os, subprocess, easydict, time, pandas as pd, numpy as np
+    import os, subprocess, easydict, time, pandas as pd, numpy as np
 
     # replicating the summary statistics for the market cap, volume, and returns as in the paper
     # all unique coin IDs
@@ -158,10 +159,6 @@ for coin in coins_weekly_returns.keys():
 # repeating the process overwrites the file
 render_summary_statistics(start_date, end_date, daily_trading_data, market_weekly_returns, coins_weekly_returns)
 """
-
-
-
-
 
 # this function translates a standard dateframe into LaTeX
 def convertToLaTeX(df, alignment="c"):
