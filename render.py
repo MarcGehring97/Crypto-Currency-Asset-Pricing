@@ -44,19 +44,19 @@ def render_summary_statistics(start_date, end_date, daily_trading_data, market_w
     median_volumes = []
     all_market_caps = []
     all_volumes = []
-    for year in year:
+    for year in years:
         counter = 0
         market_caps = []
         volumes = []
         for coin in coin_ids:
             coin_daily_prices = coins_daily_prices[coin]
             # if not every market cap is missing in that year for that coin
-            if coin_daily_prices[[i[:4] == year for i in list(coin_daily_prices["date"])]]["market_cap"].isna().sum() != 0:
+            if coin_daily_prices[[date[:4] == year for date in list(coin_daily_prices["date"])]]["market_cap"].isna().sum() == 0:
                 counter += 1
-                market_caps += list(coin_daily_prices[coin_daily_prices["year"] == year]["market_cap"].dropna())
+                market_caps += list(coin_daily_prices[[date[:4] == year for date in list(coin_daily_prices["date"])]]["market_cap"].dropna())
                 # NaN values are automatically dropped
                 # and if all market caps are missing, the trading volume probably has little meaning
-                volumes += list(coin_daily_prices[coin_daily_prices["year"] == year]["volume"].dropna())
+                volumes += list(coin_daily_prices[[date[:4] == year for date in list(coin_daily_prices["date"])]]["total_volume"].dropna())
         number_of_coins.append(counter)
         mean_market_caps.append(np.mean(market_caps))
         median_market_caps.append(np.median(market_caps))
@@ -64,9 +64,6 @@ def render_summary_statistics(start_date, end_date, daily_trading_data, market_w
         median_volumes.append(np.median(volumes))
         all_market_caps += market_caps
         all_volumes += volumes
-
-    for i in [years, number_of_coins, mean_market_caps, median_market_caps, mean_volumes, median_volumes]:
-        print(i)
     
     # opens the LaTeX summary statistics table template as a string
     template = open("summary_statistics.tex", "r").read()
@@ -74,7 +71,7 @@ def render_summary_statistics(start_date, end_date, daily_trading_data, market_w
     # adding the rows to the LaTeX template
     panel_a_rows = ""
     for i in range(len(years)):
-        panel_a_rows += years[i] + " & " + str(round(number_of_coins[i], 2)) + " & " + str(round(mean_market_caps[i] / 1000000, 2)) + " & " + str(round(median_market_caps[i] / 1000000, 2)) + " & " + str(round(mean_volumes[i] / 1000, 2)) + " & " + str(round(median_volumes [i] / 1000, 2)) + " \\ "
+        panel_a_rows += years[i] + " & " + str(round(number_of_coins[i], 2)) + " & " + str(round(mean_market_caps[i] / 1000000, 2)) + " & " + str(round(median_market_caps[i] / 1000000, 2)) + " & " + str(round(mean_volumes[i] / 1000, 2)) + " & " + str(round(median_volumes [i] / 1000, 2)) + " \\\ "
 
     panel_a_summary = str(len(coin_ids)) + " & " + str(round(np.mean(all_market_caps), 2)) + " & " + str(round(np.median(all_market_caps), 2)) + " & " + str(round(np.mean(all_volumes), 2)) + " & " + str(round(np.median(all_volumes), 2))
 
@@ -113,7 +110,7 @@ def render_summary_statistics(start_date, end_date, daily_trading_data, market_w
     pdf_path = os.getcwd() + "/cover.pdf"
 
     # inverting the colors in the PDF in case the user is using dark mode
-    if input("Is your editor is dark mode? y/n") in ["Y", "y"]:
+    if input("Is your editor is dark mode? y/n ") in ["Y", "y"]:
 
         from pdf2image import convert_from_path
         from PIL import ImageChops
@@ -124,14 +121,46 @@ def render_summary_statistics(start_date, end_date, daily_trading_data, market_w
         image.save(pdf_path)
         time.sleep(3)
 
-import pandas as pd, datetime
+"""
+import pandas as pd, datetime, random
 start_date = "2014-01-01"
-end_date = str(datetime.date.today())
-data_path = r"/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data"
-# the data was retrieved on 2023-01-13
-daily_trading_data = pd.read_csv(data_path+"/cg_data.csv")
+end_date = "2023-01-12"
 
-render_summary_statistics(start_date, end_date, daily_trading_data)
+daily_trading_data = pd.DataFrame({"id": [], "date": [], "price": [], "market_cap": [], "total_volume": []})
+daily_trading_data["id"] = ["Check"] * 90 + ["Out"] * 90
+daily_trading_data["date"] = ["2014"] * 10 + ["2015"] * 10 + ["2016"] * 10 + ["2017"] * 10 + ["2018"] * 10 + ["2019"] * 10 + ["2020"] * 10 + ["2021"] * 10 + ["2022"] * 10 + ["2014"] * 10 + ["2015"] * 10 + ["2016"] * 10 + ["2017"] * 10 + ["2018"] * 10 + ["2019"] * 10 + ["2020"] * 10 + ["2021"] * 10 + ["2022"] * 10
+daily_trading_data["price"] = random.sample(range(10, 300), 180)
+daily_trading_data["market_cap"] = random.sample(range(10, 300), 180)
+daily_trading_data["total_volume"] = random.sample(range(10, 300), 180)
+
+market_weekly_returns = pd.DataFrame({"year": [], "week": [], "average_return": [], "included_ids": []})
+market_weekly_returns["year"] = [2014] * 10 + [2015] * 10 + [2016] * 10 + [2017] * 10 + [2018] * 10 + [2019] * 10 + [2020] * 10 + [2021] * 10 + [2022] * 10
+market_weekly_returns["week"] = random.sample(range(10, 300), 90)
+returns = random.sample(range(10, 300), 90)
+returns = [x / 1000 for x in returns]
+market_weekly_returns["average_return"] = returns
+market_weekly_returns["included_ids"] = [["Test"]] * 90
+
+coins_weekly_returns = {"ethereum": None, "bitcoin": None, "ripple": None, "other": None}
+for coin in coins_weekly_returns.keys():
+    year = [2014] * 10 + [2015] * 10 + [2016] * 10 + [2017] * 10 + [2018] * 10 + [2019] * 10 + [2020] * 10 + [2021] * 10 + [2022] * 10
+    week = random.sample(range(10, 300), 90)
+    price = random.sample(range(10, 300), 90)
+    market_cap = random.sample(range(10, 300), 90)
+    volume = random.sample(range(10, 300), 90)
+    returns = random.sample(range(10, 300), 90)
+    returns = [x / 1000 for x in returns]
+
+    df = pd.DataFrame({"year": year, "week": week, "price": price, "market_cap": market_cap, "volume": volume, "return": returns})
+    coins_weekly_returns[coin] = df
+        
+# creates a temporary PDF file named "cover.pdf"
+# repeating the process overwrites the file
+render_summary_statistics(start_date, end_date, daily_trading_data, market_weekly_returns, coins_weekly_returns)
+"""
+
+
+
 
 
 # this function translates a standard dateframe into LaTeX
