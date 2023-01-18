@@ -153,6 +153,15 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
         # the initial API call returns a list of dictionaries with detailed information
         
         coin_list = cg.get_coins_list()
+
+        """
+        new = []
+        for dict in coin_list:
+            if dict["id"] == "bitcoin" or dict["id"] == "ethereum":
+                new.append(dict)
+        coin_list = new
+        """
+
         list_length = len(coin_list)
         if ids_per_data_subset == "All":
             ids_per_data_subset = list_length

@@ -11,6 +11,7 @@ The function "retrieve_data" has the following arguments:
 - name: The name of the data set. The default is "".
 - path: The path where the user intends to store the data. The default is "".
 - download: Whether the user wants to download the data or get them returned. The default is True.
+
 The function "weekly_data" returns a pd dateframe with columns for year/week (replacing the date column) and the other given columns
 """
 
@@ -114,9 +115,11 @@ def weekly_data(data, start_date, end_date, name="", path="", download=True):
 """
 import datetime, pandas as pd
 start_date = "2014-01-01"
-end_date = str(datetime.date.today())
-path = "/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data"
-data = pd.read_csv(path + "/stock_factors_data.csv")
+end_date = "2023-01-13"
+path = "/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data/coingecko/coingecko"
+data = pd.read_csv(path + "/cg_data.csv")
 print(data.head())
-print(weekly_data(data=data, name="stock_factors", download=False).head(55))
+coin_ids = pd.unique(data["id"])
+coin_data = data[data["id"] == "ethereum"]
+weekly_data(data=coin_data, start_date= start_date, end_date=end_date, name="test1", path=path)
 """
