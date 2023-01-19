@@ -72,6 +72,6 @@ def retrieve_data(start_date, end_date, path="", query=["Bitcoin"], download=Tru
 
 import datetime
 
-bearer_token = str(open("/Users/Marc/Downloads/twitter_bearer_token_key.txt").read())
+# bearer_token = str(open("/Users/Marc/Downloads/twitter_bearer_token_key.txt").read())
 
 # print(retrieve_data(start_date="2014-01-01", end_date=str(datetime.date.today()), bearer_token=bearer_token, download=False))

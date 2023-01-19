@@ -16,9 +16,9 @@ __all__ = ["retrieve_data"]
 
 def retrieve_data(start_date, end_date, path="", series_ids=["DGS1MO", "DEXUSAL", "DEXCAUS", "DEXUSEU", "DEXSIUS", "DEXUSUK"], download=True):
 
-    import requests, os, pandas as pd, datetime, time, numpy as np
+    import requests, os, pandas as pd, datetime, time, numpy as np, json
 
-    api_key = "f32180d669b6c6eccde4ddfba4c49a7c"
+    api_key = json.load(open("/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/fred_key.json"))["api_key"]
 
     start_date_dt = datetime.datetime.strptime(str(start_date), "%Y-%m-%d").date()
     end_date_dt = datetime.datetime.strptime(str(end_date), "%Y-%m-%d").date()
@@ -41,16 +41,29 @@ def retrieve_data(start_date, end_date, path="", series_ids=["DGS1MO", "DEXUSAL"
         file_names = os.listdir(path)
     
     for series_id in series_ids:
-        api_url = "https://api.stlouisfed.org/fred/series/observations?series_id=" + series_id + "&file_type=json&realtime_start=" + str(start_date) + "&realtime_end=" + str(end_date) + "&api_key=" + api_key
-        print(api_url)
+        # for this series, we need more data and hence need to make 2 API calls
+        if series_id == "DGS1MO":
+            api_url1 = "https://api.stlouisfed.org/fred/series/observations?series_id=" + series_id + "&file_type=json&realtime_start=" + str(start_date_dt) + "&realtime_end=" + "2017-12-31" + "&api_key=" + api_key
+            api_url2 = "https://api.stlouisfed.org/fred/series/observations?series_id=" + series_id + "&file_type=json&realtime_start=" + "2018-01-01" + "&realtime_end=" + str(end_date_dt) + "&api_key=" + api_key
+            response1 = requests.get(api_url1)
+            response2 = requests.get(api_url2)
 
-        response = requests.get(api_url)
+            if response1.status_code != 200 or response2.status_code != 200:
+                print("There was an error")
+                continue
 
-        if response.status_code != 200:
-            print("There was an error")
-            continue
+            data = response1.json()["observations"] + response2.json()["observations"]
 
-        data = response.json()["observations"]
+        else:    
+            api_url = "https://api.stlouisfed.org/fred/series/observations?series_id=" + series_id + "&file_type=json&realtime_start=" + str(start_date_dt) + "&realtime_end=" + str(end_date_dt) + "&api_key=" + api_key
+            response = requests.get(api_url)
+
+            if response.status_code != 200:
+                print("There was an error")
+                continue
+
+            data = response.json()["observations"]
+
         for day in days:
             # match the days to all dates in the respective data set
             match_found = False
@@ -81,4 +94,4 @@ def retrieve_data(start_date, end_date, path="", series_ids=["DGS1MO", "DEXUSAL"
         return historic_data
 
 import datetime
-# print(retrieve_data(start_date="2014-01-01", end_date=str(datetime.date.today()), download=False).head(100))
+print(retrieve_data(start_date="2014-01-01", end_date=str(datetime.date.today()), series_ids = ["DGS1MO"], download=False).head())

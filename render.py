@@ -6,16 +6,17 @@ the main.ipynb file.
 The function "render_summary_statistics" has the following arguments:
 - start_date: The start date specified in the data_processing file.
 - end_date: The start date specified in the data_processing file.
-- daily_trading_data: This data is needed to compute the statistics for Bitcoin, Ethereum, and Ripple in Panel B
-- market_weekly_returns: This data is needed to compute the statistics for the market returns in Panel B
-- coins_weekly_returns: This data is needed to compute the statistics for each year in Panel A
+- daily_trading_data: This data is needed to compute the statistics for Bitcoin, Ethereum, and Ripple in Panel B.
+- market_weekly_returns: This data is needed to compute the statistics for the market returns in Panel B.
+- coins_weekly_returns: This data is needed to compute the statistics for each year in Panel A.
+- invert: whether or not the PDF should be color-inverted (because of dark mode).
 
 The function "render_summary_statistics" adds the PDF file "cover.pdf" that can be rendered below the code in the main.ipynb file.
 """
 
 __all__ = ["render_summary_statistics"]
 
-def render_summary_statistics(start_date, end_date, daily_trading_data, market_weekly_returns, coins_weekly_returns):
+def render_summary_statistics(start_date, end_date, daily_trading_data, market_weekly_returns, coins_weekly_returns, invert):
 
     import os, subprocess, easydict, time, pandas as pd, numpy as np
 
@@ -52,7 +53,7 @@ def render_summary_statistics(start_date, end_date, daily_trading_data, market_w
         for coin in coin_ids:
             coin_daily_prices = coins_daily_prices[coin]
             # if not every market cap is missing in that year for that coin
-            if coin_daily_prices[[date[:4] == year for date in list(coin_daily_prices["date"])]]["market_cap"].isna().sum() != len(coin_daily_prices[[date[:4] == "2014" for date in list(coin_daily_prices["date"])]]):
+            if coin_daily_prices[[date[:4] == year for date in list(coin_daily_prices["date"])]]["market_cap"].isna().sum() != len(coin_daily_prices[[date[:4] == year for date in list(coin_daily_prices["date"])]]):
                 counter += 1
                 market_caps += list(coin_daily_prices[[date[:4] == year for date in list(coin_daily_prices["date"])]]["market_cap"].dropna())
                 # NaN values are automatically dropped
@@ -111,7 +112,7 @@ def render_summary_statistics(start_date, end_date, daily_trading_data, market_w
     pdf_path = os.getcwd() + "/cover.pdf"
 
     # inverting the colors in the PDF in case the user is using dark mode
-    if input("Is your editor is dark mode? y/n ") in ["Y", "y"]:
+    if invert:
 
         from pdf2image import convert_from_path
         from PIL import ImageChops
@@ -123,6 +124,7 @@ def render_summary_statistics(start_date, end_date, daily_trading_data, market_w
         time.sleep(3)
 
 """
+mock data for debugging
 import pandas as pd, datetime, random
 start_date = "2014-01-01"
 end_date = "2023-01-12"
