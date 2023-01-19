@@ -34,7 +34,7 @@ def render_summary_statistics(start_date, end_date, daily_trading_data, market_w
     end_year = end_date[:4]
     years = []
     year = start_year
-    while int(year) + 1 <= int(end_year):
+    while int(year) <= int(end_year):
         years.append(year)
         year = str(int(year) + 1)
 
@@ -52,7 +52,7 @@ def render_summary_statistics(start_date, end_date, daily_trading_data, market_w
         for coin in coin_ids:
             coin_daily_prices = coins_daily_prices[coin]
             # if not every market cap is missing in that year for that coin
-            if coin_daily_prices[[date[:4] == year for date in list(coin_daily_prices["date"])]]["market_cap"].isna().sum() == 0:
+            if coin_daily_prices[[date[:4] == year for date in list(coin_daily_prices["date"])]]["market_cap"].isna().sum() != len(coin_daily_prices[[date[:4] == "2014" for date in list(coin_daily_prices["date"])]]):
                 counter += 1
                 market_caps += list(coin_daily_prices[[date[:4] == year for date in list(coin_daily_prices["date"])]]["market_cap"].dropna())
                 # NaN values are automatically dropped
@@ -74,7 +74,7 @@ def render_summary_statistics(start_date, end_date, daily_trading_data, market_w
     for i in range(len(years)):
         panel_a_rows += years[i] + " & " + str(round(number_of_coins[i], 2)) + " & " + str(round(mean_market_caps[i] / 1000000, 2)) + " & " + str(round(median_market_caps[i] / 1000000, 2)) + " & " + str(round(mean_volumes[i] / 1000, 2)) + " & " + str(round(median_volumes [i] / 1000, 2)) + " \\\ "
 
-    panel_a_summary = str(len(coin_ids)) + " & " + str(round(np.mean(all_market_caps), 2)) + " & " + str(round(np.median(all_market_caps), 2)) + " & " + str(round(np.mean(all_volumes), 2)) + " & " + str(round(np.median(all_volumes), 2))
+    panel_a_summary = str(len(coin_ids)) + " & " + str(round(np.mean(all_market_caps) / 1000000, 2)) + " & " + str(round(np.median(all_market_caps) / 1000000, 2)) + " & " + str(round(np.mean(all_volumes) / 1000, 2)) + " & " + str(round(np.median(all_volumes) / 1000, 2))
 
     panel_b_market_return = str(round(market_weekly_returns["average_return"].dropna().mean(), 3)) + " & " + str(round(market_weekly_returns["average_return"].dropna().median(), 3)) + " & " + str(round(market_weekly_returns["average_return"].dropna().std(), 3)) + " & " + str(round(market_weekly_returns["average_return"].dropna().skew(), 3)) + " & " + str(round(market_weekly_returns["average_return"].dropna().kurtosis(), 3))
     panel_b_bitcoin_return = str(round(coins_weekly_returns["bitcoin"]["return"].dropna().mean(), 3)) + " & " + str(round(coins_weekly_returns["bitcoin"]["return"].dropna().median(), 3)) + " & " + str(round(coins_weekly_returns["bitcoin"]["return"].dropna().std(), 3)) + " & " + str(round(coins_weekly_returns["bitcoin"]["return"].dropna().skew(), 3)) + " & " + str(round(coins_weekly_returns["bitcoin"]["return"].dropna().kurtosis(), 3))

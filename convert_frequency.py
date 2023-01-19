@@ -15,7 +15,7 @@ The function "retrieve_data" has the following arguments:
 The function "weekly_data" returns a pd dateframe with columns for year/week (replacing the date column) and the other given columns
 """
 
-def weekly_data(data, start_date, end_date, name="", path="", download=True):
+def weekly_data(data, start_date, end_date, mode="last_day",name="", path="", download=True):
     
     import datetime, pandas as pd, os, numpy as np
 
@@ -70,24 +70,48 @@ def weekly_data(data, start_date, end_date, name="", path="", download=True):
                 columns.remove("year")
                 columns.remove("week")
 
-                for column in columns:
-                    match_found = False
-                    while days_dec <= limit:
-                        # the decremented date
-                        date_dec = new_date - datetime.timedelta(days=days_dec)
+                if mode == "last_day":
+                    for column in columns:
+                        match_found = False
+                        while days_dec <= limit:
+                            # the decremented date
+                            date_dec = new_date - datetime.timedelta(days=days_dec)
 
-                        data_row = data[data["date"] == str(date_dec)]
-                        # adding the first other day that has no NaN values
-                        if data_row[column].isna().sum() == 0:
-                            new_data_row[column] = data_row[column]
-                            match_found = True
-                            break
+                            data_row = data[data["date"] == str(date_dec)]
+                            # adding the first other day that has no NaN values
+                            if data_row[column].isna().sum() == 0:
+                                new_data_row[column] = data_row[column]
+                                match_found = True
+                                break
+                            
+                            days_dec += 1
                         
-                        days_dec += 1
-                    
-                    # if no match is found, add NaN
-                    if not match_found:
-                        new_data_row[column] = np.nan
+                        # if no match is found, add NaN
+                        if not match_found:
+                            new_data_row[column] = np.nan
+                
+                elif mode == "max_day":
+                    for column in columns:
+                        match_found = False
+                        max_val = data[data["date"] == str(new_date)][column]
+                        while days_dec <= limit:
+                            # the decremented date
+                            date_dec = new_date - datetime.timedelta(days=days_dec)
+
+                            data_row = data[data["date"] == str(date_dec)]
+                            # adding the first other day that has no NaN values
+                            if data_row[column].isna().sum() == 0 and data_row[column].tolist()[0] >= max_val.tolist()[0]:
+                                max_val = data_row[column]
+                                match_found = True
+                            
+                            days_dec += 1
+
+                        if match_found:
+                            new_data_row[column] = max_val
+                        
+                        # if no match is found, add NaN
+                        else:
+                            new_data_row[column] = np.nan
                 
                 # inserting the week
                 new_data_row["year"] = year
