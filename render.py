@@ -14,7 +14,7 @@ The function "render_summary_statistics" has the following arguments:
 The function "render_summary_statistics" adds the PDF file "cover.pdf" that can be rendered below the code in the main.ipynb file.
 """
 
-__all__ = ["render_summary_statistics"]
+__all__ = ["render_summary_statistics", "render_size_strategy_returns"]
 
 def render_summary_statistics(start_date, end_date, daily_trading_data, market_weekly_returns, coins_weekly_returns, invert):
 
@@ -122,6 +122,12 @@ def render_summary_statistics(start_date, end_date, daily_trading_data, market_w
         image = ImageChops.invert(image)
         image.save(pdf_path)
         time.sleep(3)
+
+def render_size_strategy_returns():
+
+
+
+
 
 """
 mock data for debugging

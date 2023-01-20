@@ -93,5 +93,5 @@ def retrieve_data(start_date, end_date, path="", series_ids=["DGS1MO", "DEXUSAL"
     else:
         return historic_data
 
-import datetime
-print(retrieve_data(start_date="2014-01-01", end_date=str(datetime.date.today()), series_ids = ["DGS1MO"], download=False).head())
+# import datetime
+# print(retrieve_data(start_date="2014-01-01", end_date=str(datetime.date.today()), series_ids = ["DGS1MO"], download=False).head())
