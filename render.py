@@ -73,14 +73,13 @@ def render_summary_statistics(start_date, end_date, daily_trading_data, market_w
     # adding the rows to the LaTeX template
     panel_a_rows = ""
     for i in range(len(years)):
-        panel_a_rows += years[i] + " & " + str(round(number_of_coins[i], 2)) + " & " + str(round(mean_market_caps[i] / 1000000, 2)) + " & " + str(round(median_market_caps[i] / 1000000, 2)) + " & " + str(round(mean_volumes[i] / 1000, 2)) + " & " + str(round(median_volumes [i] / 1000, 2)) + " \\\ "
+        panel_a_rows += years[i] + " & " + f'{round(number_of_coins[i], 2):,}' + " & " + f'{round(mean_market_caps[i] / 1000000, 2):,}' + " & " + f'{round(median_market_caps[i] / 1000000, 2):,}' + " & " + f'{round(mean_volumes[i] / 1000, 2):,}' + " & " + f'{round(median_volumes [i] / 1000, 2):,}' + " \\\ "
 
-    panel_a_summary = str(len(coin_ids)) + " & " + str(round(np.mean(all_market_caps) / 1000000, 2)) + " & " + str(round(np.median(all_market_caps) / 1000000, 2)) + " & " + str(round(np.mean(all_volumes) / 1000, 2)) + " & " + str(round(np.median(all_volumes) / 1000, 2))
-
-    panel_b_market_return = str(round(market_weekly_returns["average_return"].dropna().mean(), 3)) + " & " + str(round(market_weekly_returns["average_return"].dropna().median(), 3)) + " & " + str(round(market_weekly_returns["average_return"].dropna().std(), 3)) + " & " + str(round(market_weekly_returns["average_return"].dropna().skew(), 3)) + " & " + str(round(market_weekly_returns["average_return"].dropna().kurtosis(), 3))
-    panel_b_bitcoin_return = str(round(coins_weekly_returns["bitcoin"]["return"].dropna().mean(), 3)) + " & " + str(round(coins_weekly_returns["bitcoin"]["return"].dropna().median(), 3)) + " & " + str(round(coins_weekly_returns["bitcoin"]["return"].dropna().std(), 3)) + " & " + str(round(coins_weekly_returns["bitcoin"]["return"].dropna().skew(), 3)) + " & " + str(round(coins_weekly_returns["bitcoin"]["return"].dropna().kurtosis(), 3))
-    panel_b_ripple_return = str(round(coins_weekly_returns["ethereum"]["return"].dropna().mean(), 3)) + " & " + str(round(coins_weekly_returns["ethereum"]["return"].dropna().median(), 3)) + " & " + str(round(coins_weekly_returns["ethereum"]["return"].dropna().std(), 3)) + " & " + str(round(coins_weekly_returns["ethereum"]["return"].dropna().skew(), 3)) + " & " + str(round(coins_weekly_returns["ethereum"]["return"].dropna().kurtosis(), 3))
-    panel_b_ethereum_return = str(round(coins_weekly_returns["ripple"]["return"].dropna().mean(), 3)) + " & " + str(round(coins_weekly_returns["ripple"]["return"].dropna().median(), 3)) + " & " + str(round(coins_weekly_returns["ripple"]["return"].dropna().std(), 3)) + " & " + str(round(coins_weekly_returns["ripple"]["return"].dropna().skew(), 3)) + " & " + str(round(coins_weekly_returns["ripple"]["return"].dropna().kurtosis(), 3))
+    panel_a_summary = str(len(coin_ids)) + " & " + f'{round(np.mean(all_market_caps) / 1000000, 2):,}' + " & " + f'{round(np.median(all_market_caps) / 1000000, 2):,}' + " & " + f'{round(np.mean(all_volumes) / 1000, 2):,}' + " & " + f'{round(np.median(all_volumes) / 1000, 2):,}'
+    panel_b_market_return = f'{round(market_weekly_returns["average_return"].dropna().mean(), 3):,}' + " & " + f'{round(market_weekly_returns["average_return"].dropna().median(), 3):,}' + " & " + f'{round(market_weekly_returns["average_return"].dropna().std(), 3):,}' + " & " + f'{round(market_weekly_returns["average_return"].dropna().skew(), 3):,}' + " & " + f'{round(market_weekly_returns["average_return"].dropna().kurtosis(), 3):,}'
+    panel_b_bitcoin_return = f'{round(coins_weekly_returns["bitcoin"]["return"].dropna().mean(), 3):,}' + " & " + f'{round(coins_weekly_returns["bitcoin"]["return"].dropna().median(), 3):,}' + " & " + f'{round(coins_weekly_returns["bitcoin"]["return"].dropna().std(), 3):,}' + " & " + f'{round(coins_weekly_returns["bitcoin"]["return"].dropna().skew(), 3):,}' + " & " + f'{round(coins_weekly_returns["bitcoin"]["return"].dropna().kurtosis(), 3):,}'
+    panel_b_ripple_return = f'{round(coins_weekly_returns["ethereum"]["return"].dropna().mean(), 3):,}' + " & " + f'{round(coins_weekly_returns["ethereum"]["return"].dropna().median(), 3):,}' + " & " + f'{round(coins_weekly_returns["ethereum"]["return"].dropna().std(), 3):,}' + " & " + f'{round(coins_weekly_returns["ethereum"]["return"].dropna().skew(), 3):,}' + " & " + f'{round(coins_weekly_returns["ethereum"]["return"].dropna().kurtosis(), 3):,}'
+    panel_b_ethereum_return = f'{round(coins_weekly_returns["ripple"]["return"].dropna().mean(), 3):,}' + " & " + f'{round(coins_weekly_returns["ripple"]["return"].dropna().median(), 3):,}' + " & " + f'{round(coins_weekly_returns["ripple"]["return"].dropna().std(), 3):,}' + " & " + f'{round(coins_weekly_returns["ripple"]["return"].dropna().skew(), 3):,}' + " & " + f'{round(coins_weekly_returns["ripple"]["return"].dropna().kurtosis(), 3):,}'
 
     template = template.replace("<Panel A rows>", panel_a_rows)
     template = template.replace("<Panel A summary>", panel_a_summary)
@@ -123,13 +122,129 @@ def render_summary_statistics(start_date, end_date, daily_trading_data, market_w
         image.save(pdf_path)
         time.sleep(3)
 
-def render_size_strategy_returns():
+def render_size_strategy_returns(long_short_data, invert):
+
+    import os, subprocess, easydict, time
+    from scipy.stats import ttest_1samp
+
+    # opens the LaTeX summary statistics table template as a string
+    template = open("size_strategy_returns.tex", "r").read()
+
+    for size_characteristic in ["log_market_cap", "log_price", "log_max_price", "age"]:
+        mean_row = ""
+        t_row = ""
+        for quintile in ["first", "second", "third", "fourth", "fifth"]:
+            data = long_short_data[size_characteristic + "_" + quintile + "_quintile_return"]
+            # computing the statistics
+            mean = data.mean(skipna=True)
+            # per default, this function performs a two-sided t-test
+            t_test = ttest_1samp(data, 0, nan_policy="omit")
+            t_statstic = t_test[0]
+            p_value = t_test[1]
+            asterisk = ""
+            match p_value:
+                case _ if p_value <= 0.01:
+                    asterisk = "***"
+                case _ if p_value <= 0.05:
+                    asterisk = "**"
+                case _ if p_value <= 0.1:
+                    asterisk = "*"
+            mean_row += " & " + str(round(mean, 3)) + asterisk + ""
+            t_row += " & (" + str(round(t_statstic, 2)) + ")"
+            # also adding the value for the long-minus-short strategy, 5-1
+            if quintile == "fifth":
+                data = data - long_short_data[size_characteristic + "_first_quintile_return"]
+                # computing the statistics
+                mean = data.mean(skipna=True)
+                # per default, this function performs a two-sided t-test
+                t_test = ttest_1samp(data, 0, nan_policy="omit")
+                t_statstic = t_test[0]
+                p_value = t_test[1]
+                asterisk = ""
+                match p_value:
+                    case _ if p_value <= 0.01:
+                        asterisk = "***"
+                    case _ if p_value <= 0.05:
+                        asterisk = "**"
+                    case _ if p_value <= 0.1:
+                        asterisk = "*"
+                mean_row += " & " + str(round(mean, 3)) + asterisk + ""
+                t_row += " & (" + str(round(t_statstic, 2)) + ")"
+                
+        template = template.replace("<" + size_characteristic + "_mean>", mean_row)
+        template = template.replace("<" + size_characteristic + "_t>", t_row)
+
+    args = easydict.EasyDict({})
+
+    with open('cover.tex','w') as f:
+        f.write(template%args.__dict__)
+
+    cmd = ['pdflatex', '-interaction', 'nonstopmode', 'cover.tex']
+    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    proc.communicate()
+
+    retcode = proc.returncode
+    if not retcode == 0:
+        os.unlink('cover.pdf')
+        raise ValueError('Error {} executing command: {}'.format(retcode, ' '.join(cmd))) 
+
+    os.unlink('cover.tex')
+    os.unlink('cover.log')
+    os.unlink('cover.aux')
+
+    time.sleep(3)
+    # the path where the PDF is stored
+    pdf_path = os.getcwd() + "/cover.pdf"
+
+    # inverting the colors in the PDF in case the user is using dark mode
+    if invert:
+
+        from pdf2image import convert_from_path
+        from PIL import ImageChops
+
+        pil_image_lst = convert_from_path(pdf_path)
+        image = pil_image_lst[0]
+        image = ImageChops.invert(image)
+        image.save(pdf_path)
+        time.sleep(3)
+
+
+
 
 
 
 
 
 """
+import pandas as pd, numpy as np
+
+data = pd.DataFrame()
+data["log_market_cap_first_quintile_return"] = np.random.randint(100, size=100) / 1000
+data["log_market_cap_second_quintile_return"] = np.random.randint(100, size=100) / 1000
+data["log_market_cap_third_quintile_return"] = np.random.randint(100, size=100) / 1000
+data["log_market_cap_fourth_quintile_return"] = np.random.randint(100, size=100) / 1000
+data["log_market_cap_fifth_quintile_return"] = np.random.randint(100, size=100) / 1000
+
+data["log_price_first_quintile_return"] = np.random.randint(100, size=100) / 1000
+data["log_price_second_quintile_return"] = np.random.randint(100, size=100) / 1000
+data["log_price_third_quintile_return"] = np.random.randint(100, size=100) / 1000
+data["log_price_fourth_quintile_return"] = np.random.randint(100, size=100) / 1000
+data["log_price_fifth_quintile_return"] = np.random.randint(100, size=100) / 1000
+
+data["log_max_price_first_quintile_return"] = np.random.randint(100, size=100) / 1000
+data["log_max_price_second_quintile_return"] = np.random.randint(100, size=100) / 1000
+data["log_max_price_third_quintile_return"] = np.random.randint(100, size=100) / 1000
+data["log_max_price_fourth_quintile_return"] = np.random.randint(100, size=100) / 1000
+data["log_max_price_fifth_quintile_return"] = np.random.randint(100, size=100) / 1000
+
+data["age_first_quintile_return"] = np.random.randint(100, size=100) / 1000
+data["age_second_quintile_return"] = np.random.randint(100, size=100) / 1000
+data["age_third_quintile_return"] = np.random.randint(100, size=100) / 1000
+data["age_fourth_quintile_return"] = np.random.randint(100, size=100) / 1000
+data["age_fifth_quintile_return"] = np.random.randint(100, size=100) / 1000
+
+render_size_strategy_returns(data, invert=True)
+
 mock data for debugging
 import pandas as pd, datetime, random
 start_date = "2014-01-01"

@@ -1,20 +1,10 @@
+import pandas as pd
+from scipy.stats import ttest_1samp
 
+#create pandas DataFrame
+df = pd.DataFrame({'score': [0.12324, 0.123627841, 0.1236748124, 0.12356478123, 0.987643312, 0.974383123]})
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+print(ttest_1samp(df["score"], 0)[1])
 
 
 """
