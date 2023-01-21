@@ -1,9 +1,2 @@
-import pandas as pd, numpy as np
-
-a = pd.DataFrame({"test": []})
-
-a["test"] = [0.0, 0.0, 3]
-
-a["test"] = a["test"].replace(0.0, np.nan)
-
-print(a)
+print((-2.290436 * 5729 + 0.521968 * 9253 + -0.515972 * 8842 + -0.357272 * 9205 + -0.011149 * 1270) /
+ (5729 + 9253 + 8842 + 9205 + 1270))

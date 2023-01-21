@@ -73,7 +73,7 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
 
     # creating a data frame with the historic data (dates, prices, market capitalizations, and total volumes) for each coin ID
     def retrieving_cg_data(coin_ids):
-        print("The retrieval progress for this data sub(set) is: ")
+        print("The retrieval progress for this data (sub)set is: ")
         percentage_counter = 0
         list_length = len(coin_ids)
         counter = 0
