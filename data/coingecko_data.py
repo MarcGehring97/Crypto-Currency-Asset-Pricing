@@ -1,29 +1,25 @@
 """
 The function "retrieve_data" can be used to download or return a csv file of price, market cap, and volume timeseries data for a group of 
-cryptocurrencies that can be filtered by specified criteria. The data is retrieved using the free CoinGecko (https://www.coingecko.com/) API. 
-The corresponding Github repository can be found at https://github.com/man-c/pycoingecko/ and the documentation of the CoinGecko API can be 
-found at https://www.coingecko.com/en/api/documentation. The user should make sure that the required libraries are installled (pandas and 
-pycoingecko).
+cryptocurrencies that can be filtered by specified criteria. The data is retrieved using the free CoinGecko (https://www.coingecko.com/) API. The 
+corresponding Github repository can be found at https://github.com/man-c/pycoingecko/ and the documentation of the CoinGecko API can be found at 
+https://www.coingecko.com/en/api/documentation. The user should make sure that the required libraries are installled (pandas and pycoingecko).
 
-The user may also add further filtering criteria and change the chosen time period. For convenience, this code allows the user to download 
-the data set in several data subsets. The user may specify the size of every data subset. The progress may sometimes stop due to the limit 
-imposed upon the number of API calls per minute of 50. The last successfully used incremented ending index for the while loop in the function 
-"create_data_files" is printed and also indicated at the end of each file name. If the process is interrupted for any reason the user can 
-call the main function again with a new starting index "retrieve_data(starting_index=<old ending index>)".
+The user may also add further filtering criteria and change the chosen time period. For convenience, this code allows the user to download the data set 
+in several data subsets. The  user may specify the size of every data subset. The progress may sometimes stop due to the limit imposed upon the number 
+of API calls per minute of 50. The last successfully used incremented ending index for the while loop in the function "create_data_files" is printed 
+and also indicated at the end of each file name. If the process is interrupted for any reason the user can call the main function again with a new 
+starting index "retrieve_data(starting_index=<old ending index>)".
 
 The function "retrieve_data" has the following arguments:
 - start_date: The start date specified in the data_processing file. 
 - end_date: The start date specified in the data_processing file.
 - path: The path where the user intends to store the data. The default is "".
-- starting_index: The user can use the variable according to the description in the previous paragraph. The default is the overall starting
-                  index of 0.
+- starting_index: The user can use the variable according to the description in the previous paragraph. The default is the overall starting index of 0.
 - ids_per_data_subset: This is the size of each data subset if the user intends to download the data is data subsets. The default is 100.
 - download: Whether the user wants to download the data or get them returned. The default is True.
-- pro_key: If the user has a CoinGecko API Pro key, he/she can use it here. The API calls will no longer have the restrictions described 
-           above. The default is "".
+- pro_key: If the user has a CoinGecko API Pro key, he/she can use it here. The API calls will no longer have the restrictions described above. The default is "".
 
-The function "retrieve_data" returns a pd dataframe with columns for id, dates, prices, market_caps, and total_volumes
-- 
+The function "retrieve_data" returns a pd dataframe with columns for coin_id, prices, market_caps, and total_volumes. The index are the dates.
 """
 
 __all__ = ["retrieve_data"]
@@ -37,61 +33,57 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
     else:
         cg = pycoingecko.CoinGeckoAPI(api_key=pro_key)
 
-    # checking whether the API works
+    # checking whether the API is working
     print(cg.ping())
 
     # this function takes in a crude list of coin IDs and returns a filtered list of a predefined size
     def filter_ids(coin_list, starting_index, ids_per_data_subset):
         index = int(starting_index)
-        percentage_counter = 1
-        ids = []
-        print("The filtering progress for this data (sub)set is: ")
+        coin_ids = []
         while True:
             # if the end of the whole list is reached
             if index < len(coin_list):
                 # if the number of IDs per data subset is reached
-                if len(ids) < ids_per_data_subset:
-                    # filtering out coins with a current market capitalization of less than 1m USD
+                if len(coin_ids) < ids_per_data_subset:
                     try:
-                        if cg.get_coin_by_id(coin_list[index]["id"])["market_data"]["market_cap"]["usd"] >= 1000000:
-                            # this takes a while
-                            ids.append(coin_list[index]["id"])
+                        # filtering out coins with a current market capitalization of less than 1m USD
+                        # if cg.get_coin_by_id(coin_list[index]["id"])["market_data"]["market_cap"]["usd"] >= 1000000:
+                        # this takes a while
+                        coin_ids.append(coin_list[index]["id"])
                     except:
                         print("There is a missing key for " + coin_list[index]["id"]+ " but the process will continue")
                     index += 1
                     # printing the progress 
-                    progress = int(len(ids) / ids_per_data_subset * 100)
-                    if progress > percentage_counter:
-                        percentage_counter += 1
-                        print(str(progress) + "%")
                 else:
                     break
             else:
                 break
 
         # checking for duplicate IDs (there are usually none)
-        for id in ids:
-            if ids.count(id) > 1:
-                print("This ID occurs more than once: " + id + ".")
+        for coin_id in coin_ids:
+            if coin_ids.count(coin_id) > 1:
+                print("This ID occurs more than once: " + coin_id + ".")
         
-        return (ids, index)
+        return (coin_ids, index)
 
     # Creating Unix timestamps
-    start_date_dt = datetime.datetime.strptime(str(start_date), "%Y-%m-%d").date()
-    end_date_dt = datetime.datetime.strptime(str(end_date), "%Y-%m-%d").date()
-    start_date = time.mktime((start_date_dt.year, start_date_dt.month, start_date_dt.day, 12, 0, 0, 4, 1, -1))
-    end_date = time.mktime((end_date_dt.year, end_date_dt.month, end_date_dt.day, 12, 0, 0, 4, 1, -1))
+    start_date_unix = time.mktime((start_date.year, start_date.month, start_date.day, 12, 0, 0, 4, 1, -1))
+    end_date_unix = time.mktime((end_date.year, end_date.month, end_date.day, 12, 0, 0, 4, 1, -1))
     # info regarding the arguments can be found at https://docs.python.org/3/library/time.html#time.struct_time
 
     # creating a data frame with the historic data (dates, prices, market capitalizations, and total volumes) for each coin ID
-    def retrieving_cg_data(ids):
+    def retrieving_cg_data(coin_ids):
         print("The retrieval progress for this data sub(set) is: ")
         percentage_counter = 0
-        list_length = len(ids)
+        list_length = len(coin_ids)
         counter = 0
         # filling a dictionary with historic data (dates, prices, market capitalizations, and total volumes) for each coin ID
-        historic_data = {"id": [], "dates": [], "prices": [], "market_caps": [], "total_volumes": []}
-        for id in ids:
+        dfs = []
+        # getting the complete date range
+        date_range = pd.date_range(start=start_date, end=end_date, freq='D')
+        for coin_id in coin_ids:
+            coin_df = pd.DataFrame({"date": date_range})
+            coin_df.set_index("date", inplace=True, drop=True)
             # printing the progress
             counter += 1
             progress = int(counter / list_length * 100)
@@ -100,52 +92,36 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
                 print(str(progress) + "%")
             
             # retrieving the data 
-            data = cg.get_coin_market_chart_range_by_id(id=id, vs_currency="usd", from_timestamp=start_date, to_timestamp=end_date)
+            data = cg.get_coin_market_chart_range_by_id(id=coin_id, vs_currency="usd", from_timestamp=start_date_unix, to_timestamp=end_date_unix)
             # this takes a while
 
-            # filtering out any coins for which not all information is available
-            if len(data["prices"]) != 0 and len(data["market_caps"]) != 0 and len(data["total_volumes"]) != 0 and len(data["prices"]) == len(data["market_caps"]) == len(data["total_volumes"]):
-                # here, we can make the assumption that the dates for all three different variables are the same
-                for i in range(len(data["prices"])):
-                    historic_data["id"].append(id)
-                    historic_data["dates"].append(datetime.date.fromtimestamp(data["prices"][i][0] / 1000))
-                    # converting the Unix datestamps to the POSIX format without hours, minutes, and seconds
-                    # dividing by 1000 to convert from milliseconds to seconds
-                    historic_data["prices"].append(data["prices"][i][1])
-                    historic_data["market_caps"].append(data["market_caps"][i][1])
-                    historic_data["total_volumes"].append(data["total_volumes"][i][1])
-            elif len(data["prices"]) != 0 and len(data["market_caps"]) != 0 and len(data["total_volumes"]) != 0:
-                # identifying the variable with the most date data points
-                # the assumption is that the variable with the most date data points also include all dates from the other variables
-                max_length = 0
-                max_var = ""
-                vars = ["prices", "market_caps", "total_volumes"]
+            # filtering out coins that have no data for any of the variables
+            vars = ["prices", "market_caps", "total_volumes"]
+            if not any(len(data[var]) == 0 for var in vars):
+                # looping through all varialbes
                 for var in vars:
-                    if len(data[var]) >= max_length:
-                        max_length = len(data[var])
-                        max_var = var
-                dates = []
-                for i in range(len(data[max_var])):
-                    dates.append(data[max_var][i][0])
-                    historic_data["id"].append(id)
-                    historic_data["dates"].append(datetime.date.fromtimestamp(data[max_var][i][0] / 1000))
-                    # converting the Unix datestamps to the POSIX format without hours, minutes, and seconds
-                    # dividing by 1000 to convert from milliseconds to seconds
-                    historic_data[max_var].append(data[max_var][i][1])
-                vars.remove(max_var)
-                for date in dates:
-                    for var in vars:
-                        match_found = False
-                        for i in range(len(data[var])):
-                            if data[var][i][0] == date:
-                                match_found = True
-                                historic_data[var].append(data[var][i][1])
-                        if not match_found:
-                            historic_data[var].append(np.nan)
-
-        historic_data = pd.DataFrame.from_dict(historic_data)
+                    df = pd.DataFrame()
+                    dates = []
+                    var_data = []
+                    for i in range(len(data[var])):
+                        dates.append(datetime.date.fromtimestamp(data[var][i][0] / 1000))
+                        var_data.append(data[var][i][1])
+                    df["date"] = pd.to_datetime(dates)
+                    df[var] = var_data
+                    df = df.drop_duplicates(subset="date")
+                    df.set_index("date", inplace=True, drop=True)
+                    # adding NaN values for the missing data
+                    df = df.reindex(date_range)
+                    # adding NaN values for 0.0 values
+                    df[var] = df[var].replace(0.0, np.nan)
+                    coin_df[var] = df[var].tolist()
+            
+            coin_df.insert(0, "coin_id", coin_id, True)
+            dfs.append(coin_df)
+        df = pd.concat(dfs)
+        df = df.rename(columns={"prices": "price", "market_caps": "market_cap", "total_volumes": "total_volume"})
         # the data series are of different lengths depending on the availability of historic data
-        return historic_data
+        return df
 
     # this is the main function that can be used to download the data
     def create_data_files(path, starting_index, ids_per_data_subset, download):
@@ -179,7 +155,7 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
             progress = int(starting_index / list_length * 100)
             print("The overall progress is: " + str(progress) + "%")
             
-            ids, ending_index = filter_ids(coin_list, starting_index, ids_per_data_subset)
+            coin_ids, ending_index = filter_ids(coin_list, starting_index, ids_per_data_subset)
             # the retrieved index is already incremented since the incrementation happens after the ID is added to the IDs list
             # exporting the data in a dataframe to a path specified by the user
             # the ending index is stored
@@ -191,14 +167,14 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
             if not os.path.exists(coingecko_path):
                 os.makedirs(coingecko_path)
 
-            df = retrieving_cg_data(ids)
+            df = retrieving_cg_data(coin_ids)
             if download:
                 if "coingecko_data" + str(ending_index) + ".csv" not in file_names:
-                    df.to_csv(coingecko_path + "/coingecko_data" + str(ending_index) + ".csv", index=False)
+                    df.to_csv(coingecko_path + "/coingecko_data" + str(ending_index) + ".csv")
                 else:
                     if input("The file already exists. Do you want to replace it? Y/N ") == "Y":
                         os.remove("/coingecko_data" + str(ending_index) + ".csv")
-                        df.to_csv(coingecko_path + "/coingecko_data" + str(ending_index) + ".csv", index=False)
+                        df.to_csv(coingecko_path + "/coingecko_data" + str(ending_index) + ".csv")
                     else:
                         print("Could not create a new file.")
             else:
@@ -218,13 +194,16 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
     
     # here the function is called
     return create_data_files(path, starting_index, ids_per_data_subset, download)
-    
+
+
 # calling the main function
 # print(retrieve_data(ids_per_data_subset = "All", download = False).head())
 # to download the entire data set at once (not safe) insert "All" for the argument "ids_per_data_subset"
+import datetime as dt
+start_date = dt.date(2014, 1, 1)
+end_date = dt.date.today()
+retrieve_data(start_date=start_date, end_date=end_date, path="/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data", starting_index=0, ids_per_data_subset=100)
 
-# import datetime
-# retrieve_data(start_date="2014-01-01", end_date="2023-01-12", path="/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data/coingecko", starting_index=0, ids_per_data_subset=100)
 
 """
 The code below can be used to test how long the API takes to process different kinds of calls. The result here is that
@@ -249,14 +228,14 @@ def speed_test(number_of_coins = 100):
     total_time2 = 0
     counter = 0
 
-    for id in coin_list:
+    for coin in coin_list:
         try: 
-            id = id["id"]
+            coin_id = coin["id"]
             start1 = time.time()
-            cg.get_coin_by_id(id)["market_data"]["market_cap"]["usd"]
+            cg.get_coin_by_id(coin_id)["market_data"]["market_cap"]["usd"]
             end1 = time.time()
             start2 = time.time()
-            cg.get_coin_market_chart_range_by_id(id=id, vs_currency="usd", from_timestamp=start_date, to_timestamp=end_date)
+            cg.get_coin_market_chart_range_by_id(id=coin_id, vs_currency="usd", from_timestamp=start_date, to_timestamp=end_date)
             end2 = time.time()
         except:
             print("Error, but continue.")
@@ -267,6 +246,3 @@ def speed_test(number_of_coins = 100):
     print("The two API calls were tested for " + str(counter) + " coins.")
     print("The average time for the first API call was " + str(total_time1 / counter) + ".")
     print("The average time for the second API call was " + str(total_time2 / counter) + ".")
-
-# speed_test()
-

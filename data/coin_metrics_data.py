@@ -39,11 +39,11 @@ def retrieve_data(start_date, end_date, path="", metrics=["AdrActCnt", "TxCnt"],
     
     if download:
         if "coin_metrics_data.csv" not in file_names:
-            metrics.to_csv(path + "/coin_metrics_data.csv", index=False)
+            metrics.to_csv(path + "/coin_metrics_data.csv")
         else:
             if input("The file already exists. Do you want to replace it? Y/N ") == "Y":
                 os.remove(path + "/coin_metrics_data.csv")
-                metrics.to_csv(path + "/coin_metrics_data.csv", index=False)
+                metrics.to_csv(path + "/coin_metrics_data.csv")
             else:
                 print("Could not create a new file.")
     else: 

@@ -60,11 +60,11 @@ def retrieve_data(start_date, end_date, path="", query=["Bitcoin"], download=Tru
 
     if download:
         if "twitter_data.csv" not in file_names:
-            df.to_csv(path + "/twitter_data.csv", index=False)
+            df.to_csv(path + "/twitter_data.csv")
         else:
             if input("The file already exists. Do you want to replace it? Y/N ") == "Y":
                 os.remove(path + "/twitter_data.csv")
-                df.to_csv(path + "/twitter_data.csv", index=False)
+                df.to_csv(path + "/twitter_data.csv")
             else:
                 print("Could not create a new file.")
     else: 

@@ -67,11 +67,11 @@ def retrieve_data(start_date, end_date, path="", kw_list=["Bitcoin"], download=T
 
     if download:
         if "google_trends_data.csv" not in file_names:
-            data.to_csv(path + "/google_trends_data.csv", index=False)
+            data.to_csv(path + "/google_trends_data.csv")
         else:
             if input("The file already exists. Do you want to replace it? Y/N ") == "Y":
                 os.remove(path + "/google_trends_data.csv")
-                data.to_csv(path + "/google_trends_data.csv", index=False)
+                data.to_csv(path + "/google_trends_data.csv")
             else:
                 print("Could not create a new file.")
     else: 

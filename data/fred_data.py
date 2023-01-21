@@ -83,11 +83,11 @@ def retrieve_data(start_date, end_date, path="", series_ids=["DGS1MO", "DEXUSAL"
 
     if download:
         if "fred_data.csv" not in file_names:
-            historic_data.to_csv(path + "/fred_data.csv", index=False)
+            historic_data.to_csv(path + "/fred_data.csv")
         else:
             if input("The file already exists. Do you want to replace it? Y/N ") == "Y":
                 os.remove(path + "/fred_data.csv")
-                historic_data.to_csv(path + "/fred_data.csv", index=False)
+                historic_data.to_csv(path + "/fred_data.csv")
             else:
                 print("Could not create a new file.")
     else:

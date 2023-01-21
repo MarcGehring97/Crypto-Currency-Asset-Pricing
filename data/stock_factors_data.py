@@ -88,11 +88,11 @@ def retrieve_all(start_date, end_date, path="", download=True):
 
     if download:
         if "stock_factors_data.csv" not in file_names:
-            output.to_csv(path + "/stock_factors_data.csv", index=False)
+            output.to_csv(path + "/stock_factors_data.csv")
         else:
             if input("The file already exists. Do you want to replace it? Y/N ") == "Y":
                 os.remove(path + "/stock_factors_data.csv")
-                output.to_csv(path + "/stock_factors_data.csv", index=False)
+                output.to_csv(path + "/stock_factors_data.csv")
             else:
                 print("Could not create a new file.")
     else: 
