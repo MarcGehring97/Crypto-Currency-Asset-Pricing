@@ -66,70 +66,41 @@ def merge(path="", download=True):
 # import datetime
 # merge(start_date="2014-01-01", end_date="2023-01-12",path=r"/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data")
 
-def render_summary_statistics(start_date, end_date, daily_trading_data, market_weekly_returns, coins_weekly_returns, invert):
+def render_summary_statistics(daily_trading_data, market_weekly_returns, weekly_returns_data, invert):
 
-    import os, subprocess, easydict, time, pandas as pd, numpy as np
-
-    # replicating the summary statistics for the market cap, volume, and returns as in the paper
-    # all unique coin IDs
-    coin_ids = pd.unique(daily_trading_data["id"])
-
-    # storing the data in a dict with keys for the ID
-    coins_daily_prices = {}
-    for coin_id in coin_ids:
-        # get all the data for one coin
-        coins_daily_prices[coin_id] = daily_trading_data[daily_trading_data["id"] == coin_id]
+    import os, subprocess, easydict, time, numpy as np
     
-    # the columns of panel A of the table
-    start_year = start_date[:4]
-    end_year = end_date[:4]
-    years = []
-    year = start_year
-    while int(year) <= int(end_year):
-        years.append(year)
-        year = str(int(year) + 1)
-
-    number_of_coins = []
-    mean_market_caps = []
-    median_market_caps = []
-    mean_volumes = []
-    median_volumes = []
-    all_market_caps = []
-    all_volumes = []
-    for year in years:
+    # group the data by date
+    grouped = daily_trading_data.groupby(daily_trading_data.index.year)
+    # the number of coins per year for which not every return data point is missing
+    number_of_coins = {}
+    for year in daily_trading_data.index.year.dropna().unique():
+        sub_df = daily_trading_data[daily_trading_data.index.year == year]
         counter = 0
-        market_caps = []
-        volumes = []
-        for coin in coin_ids:
-            coin_daily_prices = coins_daily_prices[coin]
-            # if not every market cap is missing in that year for that coin
-            if coin_daily_prices[[date[:4] == year for date in list(coin_daily_prices["date"])]]["market_cap"].isna().sum() != len(coin_daily_prices[[date[:4] == year for date in list(coin_daily_prices["date"])]]):
+        for coin_id in sub_df["coin_id"].dropna().unique():
+            # when at least one return data point is not NaN
+            if sub_df[sub_df["coin_id"] == coin_id]["return"].notna().sum() > 0:
                 counter += 1
-                market_caps += list(coin_daily_prices[[date[:4] == year for date in list(coin_daily_prices["date"])]]["market_cap"].dropna())
-                # NaN values are automatically dropped
-                # and if all market caps are missing, the trading volume probably has little meaning
-                volumes += list(coin_daily_prices[[date[:4] == year for date in list(coin_daily_prices["date"])]]["total_volume"].dropna())
-        number_of_coins.append(counter)
-        mean_market_caps.append(np.mean(market_caps))
-        median_market_caps.append(np.median(market_caps))
-        mean_volumes.append(np.mean(volumes))
-        median_volumes.append(np.median(volumes))
-        all_market_caps += market_caps
-        all_volumes += volumes
+        number_of_coins[year] = counter
+    # the other statistics
+    mean_market_caps = grouped.apply(lambda x: (x["market_cap"].mean())))
+    median_market_caps = grouped.apply(lambda x: (x["market_cap"].median()))
+    mean_volumes = grouped.apply(lambda x: (x["total_volume"].mean()))
+    median_volumes = grouped.apply(lambda x: (x["total_volume"].median()))
     
     # opens the LaTeX summary statistics table template as a string
     template = open("latex_templates/summary_statistics.tex", "r").read()
 
     # adding the rows to the LaTeX template
     panel_a_rows = ""
-    for i in range(len(years)):
-        panel_a_rows += years[i] + " & " + f'{round(number_of_coins[i], 2):,}' + " & " + f'{round(mean_market_caps[i] / 1000000, 2):,}' + " & " + f'{round(median_market_caps[i] / 1000000, 2):,}' + " & " + f'{round(mean_volumes[i] / 1000, 2):,}' + " & " + f'{round(median_volumes [i] / 1000, 2):,}' + " \\\ "
+    for year in daily_trading_data.index.year.unique().dropna():
+        panel_a_rows += f"{year} & {round(number_of_coins[year], 2):,} & {round(mean_market_caps[mean_market_caps.index.year == year] / 1000000, 2):,} & {round(median_market_caps[median_market_caps.index.year == year] / 1000000, 2):,} & {round(mean_volumes[mean_volumes.index.year == year] / 1000, 2):,} & {round(median_volumes[median_volumes.index.year == year] / 1000, 2):,} \\\ "
 
-    panel_a_summary = str(len(coin_ids)) + " & " + f'{round(np.mean(all_market_caps) / 1000000, 2):,}' + " & " + f'{round(np.median(all_market_caps) / 1000000, 2):,}' + " & " + f'{round(np.mean(all_volumes) / 1000, 2):,}' + " & " + f'{round(np.median(all_volumes) / 1000, 2):,}'
-    panel_b_market_return = f'{round(market_weekly_returns["average_return"].dropna().mean(), 3):,}' + " & " + f'{round(market_weekly_returns["average_return"].dropna().median(), 3):,}' + " & " + f'{round(market_weekly_returns["average_return"].dropna().std(), 3):,}' + " & " + f'{round(market_weekly_returns["average_return"].dropna().skew(), 3):,}' + " & " + f'{round(market_weekly_returns["average_return"].dropna().kurtosis(), 3):,}'
-    panel_b_bitcoin_return = f'{round(coins_weekly_returns["bitcoin"]["return"].dropna().mean(), 3):,}' + " & " + f'{round(coins_weekly_returns["bitcoin"]["return"].dropna().median(), 3):,}' + " & " + f'{round(coins_weekly_returns["bitcoin"]["return"].dropna().std(), 3):,}' + " & " + f'{round(coins_weekly_returns["bitcoin"]["return"].dropna().skew(), 3):,}' + " & " + f'{round(coins_weekly_returns["bitcoin"]["return"].dropna().kurtosis(), 3):,}'
-    panel_b_ripple_return = f'{round(coins_weekly_returns["ethereum"]["return"].dropna().mean(), 3):,}' + " & " + f'{round(coins_weekly_returns["ethereum"]["return"].dropna().median(), 3):,}' + " & " + f'{round(coins_weekly_returns["ethereum"]["return"].dropna().std(), 3):,}' + " & " + f'{round(coins_weekly_returns["ethereum"]["return"].dropna().skew(), 3):,}' + " & " + f'{round(coins_weekly_returns["ethereum"]["return"].dropna().kurtosis(), 3):,}'
-    panel_b_ethereum_return = f'{round(coins_weekly_returns["ripple"]["return"].dropna().mean(), 3):,}' + " & " + f'{round(coins_weekly_returns["ripple"]["return"].dropna().median(), 3):,}' + " & " + f'{round(coins_weekly_returns["ripple"]["return"].dropna().std(), 3):,}' + " & " + f'{round(coins_weekly_returns["ripple"]["return"].dropna().skew(), 3):,}' + " & " + f'{round(coins_weekly_returns["ripple"]["return"].dropna().kurtosis(), 3):,}'
+    panel_a_summary = f"{len(daily_trading_data['coin_id'].unique().sum())} & {round(np.mean(daily_trading_data['market_cap']) / 1000000, 2):,} & {round(np.median(daily_trading_data['market_cap']) / 1000000, 2):,} & {round(np.mean(daily_trading_data['total_volume']) / 1000, 2):,} & {round(np.median(daily_trading_data['total_volume']) / 1000, 2):,}"
+    panel_b_market_return = f"{round(market_weekly_returns.dropna().mean(), 3):,} & {round(market_weekly_returns.dropna().median(), 3):,} & {round(market_weekly_returns.dropna().std(), 3):,} & {round(market_weekly_returns.dropna().skew(), 3):,} & {round(market_weekly_returns.dropna().kurtosis(), 3):,}"
+    panel_b_bitcoin_return = f"{round(weekly_returns_data[weekly_returns_data['coin_id'] == 'bitcoin']['return'].dropna().mean(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'bitcoin']['return'].dropna().median(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'bitcoin']['return'].dropna().std(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'bitcoin']['return'].dropna().skew(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'bitcoin']['return'].dropna().kurtosis(), 3):,}"
+    panel_b_ripple_return = f"{round(weekly_returns_data[weekly_returns_data['coin_id'] == 'ethereum']['return'].dropna().mean(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'ethereum']['return'].dropna().median(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'ethereum']['return'].dropna().std(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'ethereum']['return'].dropna().skew(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'ethereum']['return'].dropna().kurtosis(), 3):,}"
+    panel_b_ethereum_return = f"{round(weekly_returns_data[weekly_returns_data['coin_id'] == 'ripple']['return'].dropna().mean(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'ripple']['return'].dropna().median(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'ripple']['return'].dropna().std(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'ripple']['return'].dropna().skew(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'ripple']['return'].dropna().kurtosis(), 3):,}"
 
     template = template.replace("<Panel A rows>", panel_a_rows)
     template = template.replace("<Panel A summary>", panel_a_summary)
