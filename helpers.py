@@ -43,7 +43,7 @@ The function "render_momentum_strategy_returns" adds the PDF file "cover.pdf" th
 __all__ = ["merge_data", "convert_frequency", "quintile_returns", "render_summary_statistics", "render_size_strategy_returns", "render_momentum_strategy_returns"]
 
 # reading all data subsets as data frames
-def merge(path="", download=True):
+def merge_data(path="", download=True):
 
     import pandas as pd, os
 

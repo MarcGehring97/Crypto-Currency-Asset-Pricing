@@ -17,7 +17,7 @@ __all__ = ["retrieve_data"]
 
 def retrieve_data(start_date, end_date, path="", download=True):
 
-    import requests, datetime, pandas as pd, time, os, numpy as np
+    import requests, pandas as pd, os, numpy as np
 
     api_urls = {}
     api_urls["average_price"] = "https://api.eia.gov/v2/electricity/retail-sales/data/?api_key=xxxx&frequency=monthly&data[0]=price&start=2011-01&sort[0][column]=customers&sort[0][direction]=desc&offset=0&facets[stateid][]=US&length=1000000000000000&facets[sectorid][]=ALL"
@@ -27,18 +27,9 @@ def retrieve_data(start_date, end_date, path="", download=True):
 
     api_key = "jLRWwzxhWL7O85sOU5zE6l3FoRtB4FHbOMi1OqQW"
 
-    start_date_dt = datetime.datetime.strptime(str(start_date), "%Y-%m-%d").date()
-    start_date = datetime.datetime.fromtimestamp(time.mktime((start_date_dt.year, start_date_dt.month, start_date_dt.day, 12, 0, 0, 4, 1, -1)))
-    end_date = datetime.datetime.strptime(str(end_date), "%Y-%m-%d")
+    date_range = pd.date_range(start=start_date, end=end_date, freq="D")
 
-    # creating a list of all days between the start day and today
-    days_old = pd.date_range(start_date, end_date, freq='d')
-    days = []
-    # the months list contains the ID of the month for every respective day in the month
-    for date in days_old:
-        days.append(date.to_pydatetime().date())
-
-    historic_data = {"date": days}
+    historic_data = {"date": date_range}
 
     for api_url in api_urls:
         historic_data[api_url] = []
@@ -46,23 +37,26 @@ def retrieve_data(start_date, end_date, path="", download=True):
     if path != "":
         file_names = os.listdir(path)
 
-    for api_url in api_urls:
+    for var in api_urls:
         # to distinguish between monthly and daily data
         # this is necessary since one needs to retrieve the data for the other two variables for each date individually, starting from first day
-        if api_url != "average_price":
+        if var != "average_price":
             # this might take a while since there is a lot of data for every date
-            for day in days:
+            for day in date_range:
                 # skipping days before 2018 since there is no data available before then
                 if int(str(day)[:4]) < 2018:
-                    historic_data[api_url].append(np.nan)
+                    historic_data[var].append(np.nan)
                     # just append an NaN
                     continue
-                api_url = api_urls[api_url].replace("xxxx", api_key) + "&start=" + str(day) + "&end=" + str(day)
+                api_url = api_urls[var].replace("xxxx", api_key) + "&start=" + str(day.date()) + "&end=" + str(day.date())
                 print(api_url)
-                response = requests.get(api_url)
-                if response.status_code != 200:
-                    print("There was an error for "+ api_url + ".")
-                    print(response.json()["error"])
+                try:
+                    response = requests.get(api_url)
+                    if response.status_code != 200:
+                        print("There was an error for "+ api_url + ".")
+                        print(response.json()["error"])
+                        raise Exception
+                except:
                     continue
                 # turn the downloaded data into a dictionary
                 data = response.json()["response"]["data"]
@@ -81,49 +75,56 @@ def retrieve_data(start_date, end_date, path="", download=True):
                         match_found = True
                         # at least one match was found
                 if match_found:
-                    historic_data[api_url].append(sum)
+                    historic_data[var].append(sum)
                 else:
                     # otherwise a NaN is added when the date does not exist in the data or when the data is "null"
-                    historic_data[api_url].append(np.nan)
+                    historic_data[var].append(np.nan)
         else:
-            api_url = api_urls[api_url].replace("xxxx", api_key)
+            api_url = api_urls[var].replace("xxxx", api_key)
             print(api_url)
-            response = requests.get(api_url)
-            if response.status_code != 200:
-                print("There was an error for "+ api_url + ".")
-                print(response.json()["error"])
+            try:
+                response = requests.get(api_url)
+                if response.status_code != 200:
+                    print("There was an error for "+ api_url + ".")
+                    print(response.json()["error"])
+                    raise Exception
+            except:
+                continue
             # turn the downloaded data into a dictionary
             data = response.json()["response"]["data"]
-            for day in days:
+            for day in date_range:
                 # match the days to all dates in the respective data set
                 match_found = False
                 for i in range(len(data)):
                     # if there is a match
                     # for every day that the month of the date matches to
-                    if str(day)[:7] == str(data[i]["period"]):
+                    if str(day.date())[:7] == str(data[i]["period"]):
                         match_found = True
                         break
                 if match_found and not str(data[i]["price"]) == "null":
-                    historic_data[api_url].append(data[i]["price"])
+                    historic_data[var].append(data[i]["price"])
                 else:
                     # otherwise a NaN is added when the date does not exist in the data or when the data is "null"
-                    historic_data[api_url].append(np.nan)
+                    historic_data[var].append(np.nan)
 
     historic_data = pd.DataFrame.from_dict(historic_data)
+    historic_data.set_index("date", inplace=True, drop=True)
+    historic_data = historic_data.drop_duplicates(subset="date")
+    historic_data = historic_data.reindex(date_range)
 
     print("Count total NaN at each column in a dataframe:\n\n", historic_data.isnull().sum())
     
     if download:
         if "us_eia_data.csv" not in file_names:
-            historic_data.to_csv(path + "/us_eia_data.csv")
+            historic_data.to_csv(path + "/us_eia_data.csv", index=False)
         else:
             if input("The file already exists. Do you want to replace it? Y/N ") == "Y":
                 os.remove(path + "/us_eia_data.csv")
-                historic_data.to_csv(path + "/us_eia_data.csv")
+                historic_data.to_csv(path + "/us_eia_data.csv", index=False)
             else:
                 print("Could not create a new file.")
     else:
         return historic_data
 
-import datetime
-# retrieve_data(start_date="2014-01-01", end_date=str(datetime.date.today()), path = "/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data")
+import pandas as pd
+print(retrieve_data(start_date=pd.to_datetime("2014-01-01"), end_date=pd.to_datetime("today"), download=False).head(50))

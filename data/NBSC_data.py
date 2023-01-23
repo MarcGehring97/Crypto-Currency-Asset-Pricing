@@ -50,6 +50,11 @@ def retrieve_data(path="", download=True):
         i += 1
 
     df = pd.DataFrame.from_dict({"dates": dates, "Output of Electricity, Current Period(100 million kwh)": data})
+    df["date"] = pd.to_datetime(data["date"])
+    df = df.drop_duplicates(subset="date")
+    df.set_index("date", inplace=True, drop=True)
+    date_range = pd.date_range(start=start_date, end=end_date, freq="D")
+    df = df.reindex(date_range)
 
     if download:
         if "nbsc_data.csv" not in file_names:

@@ -30,12 +30,14 @@ def retrieve_data(start_date, end_date, path="", metrics=["AdrActCnt", "TxCnt"],
     # "catag_assets()" returns a list of dictionaries that contain data about the coins
     # On the 2nd of January 2020 there were 3020 assets
 
-    
     # in the paper, they use only Bitcoin network data
     metrics = client.get_asset_metrics(assets="btc", metrics=metrics, start_time=start_date, end_time=end_date, frequency="1d")
     metrics = pd.DataFrame(metrics)
     metrics.insert(0, "date", pd.to_datetime(metrics["time"]).dt.date) 
     metrics = metrics.drop(["time", "asset"], axis=1)
+    date_range = pd.date_range(start=start_date, end=end_date, freq="D")
+    metrics.set_index("date", inplace=True, drop=True)
+    metrics = metrics.reindex(date_range)
     
     if download:
         if "coin_metrics_data.csv" not in file_names:
@@ -49,5 +51,5 @@ def retrieve_data(start_date, end_date, path="", metrics=["AdrActCnt", "TxCnt"],
     else: 
         return metrics
 
-import datetime
-# print(retrieve_data(start_date="2014-01-01", end_date=str(datetime.date.today()), download=False).head())
+# import pandas as pd
+# print(retrieve_data(start_date=pd.to_datetime("2014-01-01"), end_date=pd.to_datetime("today"), download=False).head(50))

@@ -79,5 +79,5 @@ def retrieve_data(start_date, end_date, charts, path="", download=True):
     else: 
         return historic_data
 
-import pandas as pd
-print(retrieve_data(start_date=pd.to_datetime("2014-01-01"), end_date=pd.to_datetime("today"), charts=["n-unique-addresses", "n-transactions"], download=False).head(50))
+# import pandas as pd
+# print(retrieve_data(start_date=pd.to_datetime("2014-01-01"), end_date=pd.to_datetime("today"), charts=["n-unique-addresses", "n-transactions"], download=False).head(50))

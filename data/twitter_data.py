@@ -31,16 +31,13 @@ def retrieve_data(start_date, end_date, path="", query=["Bitcoin"], download=Tru
     client = Twarc2(bearer_token=bearer_token)
 
     # specify the start time in UTC for the time period you want Tweets from
-    start_date_dt = datetime.datetime.strptime(str(start_date), "%Y-%m-%d").date()
-    start_time = datetime.datetime(start_date_dt.year, start_date_dt.month, start_date_dt.day, 0, 0, 0, 0, datetime.timezone.utc)
 
-    # today does not work so it has to be yesterday
-    end_date_dt = datetime.datetime.strptime(str(end_date), "%Y-%m-%d").date()
-    yesterday = end_date_dt - datetime.timedelta(days=1)
-    end_time = datetime.datetime(yesterday.year, yesterday.month, yesterday.day, 0, 0, 0, 0, datetime.timezone.utc)
+    # today does not work so it has to be the day before
+    start_date = start_date
+    end_date = end_date - datetime.timedelta(days=1)
 
     # the counts_all method call the full-archive tweet counts endpoint to get tweet volume based on the query, start, and end times
-    count_results = client.counts_all(query=query, start_time=start_time, end_time=end_time, granularity="day")
+    count_results = client.counts_all(query=query, start_time=start_date, end_time=end_date, granularity="day")
 
     # iterating through and processing the data
     dates = []
@@ -48,15 +45,15 @@ def retrieve_data(start_date, end_date, path="", query=["Bitcoin"], download=Tru
     for page in count_results:
         page_data = page["data"]
         for data_point in reversed(page_data):
-            date = datetime.datetime.strptime(data_point["end"], "%Y-%m-%dT%H:%M:%S.%fZ")
-            dates.append(date)
+            dates.append(pd.to_datetime(data_point["end"]).date())
             data.append(data_point["tweet_count"])
-
-    dates = reversed(dates)
-    data = reversed(data)
-
+    
     df = pd.DataFrame.from_dict({"date": dates, "tweet_count": data})
-    df["date"] = pd.to_datetime(df["date"]).dt.date
+    df = df.reindex(index=df.index[::-1])
+    date_range = pd.date_range(start=start_date, end=end_date, freq="D")
+    df = df.drop_duplicates(subset="date")
+    df.set_index("date", inplace=True, drop=True)
+    df = df.reindex(date_range)
 
     if download:
         if "twitter_data.csv" not in file_names:
@@ -70,8 +67,6 @@ def retrieve_data(start_date, end_date, path="", query=["Bitcoin"], download=Tru
     else: 
         return df
 
-import datetime
-
-# bearer_token = str(open("/Users/Marc/Downloads/twitter_bearer_token_key.txt").read())
-
-# print(retrieve_data(start_date="2014-01-01", end_date=str(datetime.date.today()), bearer_token=bearer_token, download=False))
+import pandas as pd, json
+bearer_token = json.load(open("/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/twitter_bearer_token_main.json"))["bearer_token"]
+print(retrieve_data(start_date=pd.to_datetime("2014-01-01"), end_date=pd.to_datetime("today"), bearer_token=bearer_token, download=False).head(50))
