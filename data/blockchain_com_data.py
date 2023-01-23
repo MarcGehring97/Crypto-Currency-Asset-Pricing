@@ -21,26 +21,16 @@ __all__ = ["retrieve_data"]
 
 def retrieve_data(start_date, end_date, charts, path="", download=True):
 
-    import requests, datetime, pandas as pd, time, os, numpy as np
+    import requests, pandas as pd, os
     from dateutil.relativedelta import relativedelta
 
-    start_date_dt = datetime.datetime.strptime(str(start_date), "%Y-%m-%d").date()
-    end_date_dt = datetime.datetime.strptime(str(end_date), "%Y-%m-%d").date()
-    start_dates = [start_date]
-    start_dates.append(str(start_date_dt + relativedelta(years=6)))
-    end_dates = []
-    end_dates.append(str(start_date_dt + relativedelta(years=6) - relativedelta(days=1)))
-    end_dates.append(str(start_date_dt + relativedelta(years=12) - relativedelta(days=1)))
-    start_date = datetime.datetime.fromtimestamp(time.mktime((start_date_dt.year, start_date_dt.month, start_date_dt.day, 12, 0, 0, 4, 1, -1)))
-    end_date = datetime.datetime.fromtimestamp(time.mktime((end_date_dt.year, end_date_dt.month, end_date_dt.day, 12, 0, 0, 4, 1, -1)))
+    start_dates = [start_date, start_date + relativedelta(years=6)]
+    end_dates = [start_date + relativedelta(years=6) - relativedelta(days=1), end_date]
+    
+    date_range = pd.date_range(start=start_date, end=end_date, freq="D")
 
-    # creating a list of all days between the start day and today
-    days_old = pd.date_range(start_date, end_date, freq='d')
-    days = []
-    for date in days_old:
-        days.append(date.to_pydatetime().date())
+    historic_data = {"date": date_range}
 
-    historic_data = {"date": days}
     # add an empty list for every chart to store the time series data in
     for chart in charts:
         historic_data[chart] = []
@@ -51,47 +41,29 @@ def retrieve_data(start_date, end_date, charts, path="", download=True):
     for chart in charts:
         for i in range(len(start_dates)):
             # if one chooses a longer time period than 6 years, the API starts returning fewer data points
-            api_url = "https://api.blockchain.info/charts/" + chart + "?timespan=6years&start=" + start_dates[i] + "&format=json"
+            api_url = "https://api.blockchain.info/charts/" + chart + "?timespan=6years&start=" + str(start_dates[i].date()) + "&format=json"
             response = requests.get(api_url)
             if response.status_code != 200:
                 print("There was an error")
             # turn the downloaded data into a dictionary
-            data = response.json()
+            data = response.json()            
+            data = pd.DataFrame.from_records(data["values"])
             # the x-values are Unix timestamps
             # checking if the starting and ending dates are correct
             # print(datetime.datetime.fromtimestamp(data["values"][0]["x"]))
             # print(datetime.datetime.fromtimestamp(data["values"][-1]["x"]))
 
             # the code below creates a date subset according to start date
-            start_date = start_dates[i]
-            end_date = end_dates[i]
-            days_subset = []
-            # to track when the start date is
-            begin = False
-            for day in days:
-                if str(day) == start_date:
-                    begin = True
-                if str(day) == end_date:
-                    days_subset.append(day)
-                    begin = False
-                if begin:
-                    days_subset.append(day)
+            date_range = pd.date_range(start=start_dates[i], end=end_dates[i], freq="D")
+            data = data.rename(columns={"x": "date", "y": chart})
+            data["date"] = pd.to_datetime(data["date"], unit="s", origin="unix")
+            data = data.drop_duplicates(subset="date")
+            data.set_index("date", inplace=True, drop=True)
+            data = data.reindex(date_range)
+            historic_data[chart] += data[chart].tolist()
 
-            for day in days_subset:
-                # match the dates in the dates subset to all dates in the respective data set
-                match_found = False
-                for i in range(len(data["values"])):
-                    date = datetime.date.fromtimestamp(data["values"][i]["x"])
-                    # if there is a match
-                    if str(day) == str(date):
-                        match_found = True
-                        break
-                if match_found:
-                    historic_data[chart].append(data["values"][i]["y"])
-                else:
-                    # otherwise a NaN is added when the date does not exist in the data
-                    historic_data[chart].append(np.nan)
     historic_data = pd.DataFrame.from_dict(historic_data)
+    historic_data.set_index("date", inplace=True, drop=True)
     
     print("Count total NaN at each column in a dataframe:\n\n", historic_data.isnull().sum())
 
@@ -107,8 +79,5 @@ def retrieve_data(start_date, end_date, charts, path="", download=True):
     else: 
         return historic_data
 
-import datetime
-# print(retrieve_data(start_date="2014-01-01", end_date=str(datetime.date.today()), charts=["n-unique-addresses", "n-transactions"], download=False).head())
-
-# print(retrieve_data(charts=["n-unique-addresses", "n-transactions", "n-payments"], download=False).head())
-# throws an error
+import pandas as pd
+print(retrieve_data(start_date=pd.to_datetime("2014-01-01"), end_date=pd.to_datetime("today"), charts=["n-unique-addresses", "n-transactions"], download=False).head(50))

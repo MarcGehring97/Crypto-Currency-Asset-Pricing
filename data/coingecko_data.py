@@ -24,6 +24,9 @@ The function "retrieve_data" returns a pd dataframe with columns for coin_id, pr
 
 __all__ = ["retrieve_data"]
 
+from re import X
+
+
 def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_subset=100, download=True, pro_key=""):
     
     import time, pandas as pd, datetime, pycoingecko, os, numpy as np
@@ -91,33 +94,32 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
                 percentage_counter += 1
                 print(str(progress) + "%")
             
-            # retrieving the data 
-            data = cg.get_coin_market_chart_range_by_id(id=coin_id, vs_currency="usd", from_timestamp=start_date_unix, to_timestamp=end_date_unix)
-            # this takes a while
+            try:
+                # retrieving the data 
+                data = cg.get_coin_market_chart_range_by_id(id=coin_id, vs_currency="usd", from_timestamp=start_date_unix, to_timestamp=end_date_unix)
+                # this takes a while
+                # filtering out coins that have no data for any of the variables
+                vars = ["prices", "market_caps", "total_volumes"]
+                if not any(len(data[var]) == 0 for var in vars):
+                    # looping through all varialbes
+                    for var in vars:
+                        df = pd.DataFrame.from_records(data[var])
+                        df = df.rename(columns={0: "date", 1: var})
+                        df["date"] = pd.to_datetime(df["date"], unit="ms", origin="unix")
+                        df = df.drop_duplicates(subset="date")
+                        df.set_index("date", inplace=True, drop=True)
+                        # adding NaN values for the missing data
+                        df = df.reindex(date_range)
+                        # adding NaN values for 0.0 values
+                        df[var] = df[var].replace(0.0, np.nan)
+                        coin_df[var] = df[var].tolist()
+                
+                coin_df.insert(0, "coin_id", coin_id, True)
+                dfs.append(coin_df)
+            except Exception:
+                print(Exception)
+                print("The data could not be downloaded but the process continues.")
 
-            # filtering out coins that have no data for any of the variables
-            vars = ["prices", "market_caps", "total_volumes"]
-            if not any(len(data[var]) == 0 for var in vars):
-                # looping through all varialbes
-                for var in vars:
-                    df = pd.DataFrame()
-                    dates = []
-                    var_data = []
-                    for i in range(len(data[var])):
-                        dates.append(datetime.date.fromtimestamp(data[var][i][0] / 1000))
-                        var_data.append(data[var][i][1])
-                    df["date"] = pd.to_datetime(dates)
-                    df[var] = var_data
-                    df = df.drop_duplicates(subset="date")
-                    df.set_index("date", inplace=True, drop=True)
-                    # adding NaN values for the missing data
-                    df = df.reindex(date_range)
-                    # adding NaN values for 0.0 values
-                    df[var] = df[var].replace(0.0, np.nan)
-                    coin_df[var] = df[var].tolist()
-            
-            coin_df.insert(0, "coin_id", coin_id, True)
-            dfs.append(coin_df)
         df = pd.concat(dfs)
         df = df.rename(columns={"prices": "price", "market_caps": "market_cap", "total_volumes": "total_volume"})
         # the data series are of different lengths depending on the availability of historic data
@@ -160,15 +162,14 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
             # exporting the data in a dataframe to a path specified by the user
             # the ending index is stored
             # if the last ending index in the file name is 700, for example, and the process stopped, it can be continued by calling create_data_files() with a starting_index of 700
-            # it can be the case, though, that if you download different data packages on different days, the list of coins has changed
-            
-            coingecko_path = path + "/coingecko"
-            # creating the folder /coingecko_data in the data folder
-            if not os.path.exists(coingecko_path):
-                os.makedirs(coingecko_path)
+            # it can be the case, though, that if you download different data packages on different days, the list of coins has changed                
 
             df = retrieving_cg_data(coin_ids)
             if download:
+                coingecko_path = path + "/coingecko"
+                # creating the folder /coingecko_data in the data folder
+                if not os.path.exists(coingecko_path):
+                    os.makedirs(coingecko_path)
                 if "coingecko_data" + str(ending_index) + ".csv" not in file_names:
                     df.to_csv(coingecko_path + "/coingecko_data" + str(ending_index) + ".csv")
                 else:
@@ -195,15 +196,21 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
     # here the function is called
     return create_data_files(path, starting_index, ids_per_data_subset, download)
 
-
+"""
 # calling the main function
 # print(retrieve_data(ids_per_data_subset = "All", download = False).head())
 # to download the entire data set at once (not safe) insert "All" for the argument "ids_per_data_subset"
-import datetime as dt
-start_date = dt.date(2014, 1, 1)
-end_date = dt.date.today()
-retrieve_data(start_date=start_date, end_date=end_date, path="/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data", starting_index=0, ids_per_data_subset=100)
+import pandas as pd
+start_date = pd.to_datetime("2014-01-01")
+end_date = pd.to_datetime("today")
 
+while True:
+    try:
+        print(retrieve_data(start_date=start_date, end_date=end_date, path="", starting_index=0, ids_per_data_subset=100, download=False).head())
+        break
+    except:
+        continue
+"""
 
 """
 The code below can be used to test how long the API takes to process different kinds of calls. The result here is that
