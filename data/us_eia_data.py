@@ -108,8 +108,8 @@ def retrieve_data(start_date, end_date, path="", download=True):
                     historic_data[var].append(np.nan)
 
     historic_data = pd.DataFrame.from_dict(historic_data)
-    historic_data.set_index("date", inplace=True, drop=True)
     historic_data = historic_data.drop_duplicates(subset="date")
+    historic_data.set_index("date", inplace=True, drop=True)
     historic_data = historic_data.reindex(date_range)
 
     print("Count total NaN at each column in a dataframe:\n\n", historic_data.isnull().sum())

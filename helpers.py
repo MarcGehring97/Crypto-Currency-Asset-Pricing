@@ -42,10 +42,10 @@ The function "render_momentum_strategy_returns" adds the PDF file "cover.pdf" th
 
 __all__ = ["merge_data", "convert_frequency", "quintile_returns", "render_summary_statistics", "render_size_strategy_returns", "render_momentum_strategy_returns"]
 
+import pandas as pd, os, subprocess, easydict, time, numpy as np
+
 # reading all data subsets as data frames
 def merge_data(path="", download=True):
-
-    import pandas as pd, os
 
     file_names = os.listdir(path + "/coingecko")
 
@@ -74,152 +74,70 @@ def merge_data(path="", download=True):
 # merge(start_date="2014-01-01", end_date="2023-01-12",path=r"/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data")
 
 def convert_frequency(data, method, returns=False):
+    
+    date_range = pd.date_range(start=min(data.index), end=max(data.index), freq="W-SUN")
+    
+    if method == "last":
+        data = data.groupby("coin_id").apply(lambda x: x.resample("W-SUN").last().reindex(date_range)).reset_index(level="coin_id", drop=True)
+    elif method == "max":
+        data = data.groupby("coin_id").apply(lambda x: x.resample("W-SUN").max().reindex(date_range)).reset_index(level="coin_id", drop=True)
+    
+    # .pct_change() defaults to 0 for missing data
+    if returns:
+        data["return"] = data.groupby("coin_id")["price"].pct_change()
 
-    import pandas as pd
-
-    grouped = data.groupby(data["coin_id"])
-    dfs = []
-    for group in grouped.groups:
-        if method == "last":
-            group = grouped.get_group(group).resample("W-SUN").last()
-        elif method == "max":
-            group = grouped.get_group(group).resample("W-SUN").max()
-        if returns:
-            # it is important to compute the returns here the function does not recognize the gap between the data sets for the individual coins
-            group["return"] = group["price"].pct_change()
-        # we need to reindex to add back the missing value
-        date_range = pd.date_range(start=min(data.index), end=max(data.index), freq="W")
-        group = group.reindex(date_range)
-        dfs.append(group)
-
-    # combining all dataframes
-    return pd.concat(dfs)
+    data.index.name = "date"
+    
+    return data
 
 # function for the zero-investment long-short strategy
 # it returns a list for the returns of the top 20% and the bottom 20% of a given characteristic
-def quintile_returns(size_characteristic, weekly_returns_data):
-    first_quintile_returns = []
-    second_quintile_returns = []
-    third_quintile_returns = []
-    fourth_quintile_returns = []
-    fifth_quintile_returns = []
-    # initializing the list of included coins
-    first_quintile_coins = []
-    second_quintile_coins = []
-    third_quintile_coins = []
-    fourth_quintile_coins = []
-    fifth_quintile_coins = []
-    # taking an arbitrary ID to loop through all weeks
+def quintile_returns(df, size_characteristic):
 
-    weekly_returns_data
+    # creating a new dataframe with the quintile labels for each coin based on the size_characteristic for that week
+    df["quintile"] = df.groupby(["date"])[size_characteristic].transform(lambda x: pd.qcut(x, 5, labels=[size_characteristic + "_Q1", size_characteristic + " Q2", size_characteristic + " Q3", size_characteristic + " Q4", size_characteristic + " Q5"]))
 
-    for i in coins_weekly_returns[coin_ids[0]].index:
-        year = coins_weekly_returns[coin_ids[0]]["year"][i]
-        week = coins_weekly_returns[coin_ids[0]]["week"][i]
-        if year == 2014 and week == 1:
-            # in the first week we have no quintile data (and also no return data)
-            first_quintile_returns.append(np.nan)
-            second_quintile_returns.append(np.nan)
-            third_quintile_returns.append(np.nan)
-            fourth_quintile_returns.append(np.nan)
-            fifth_quintile_returns.append(np.nan)
-        else:
-            # computing the returns for the quintiles
-            for quintile in ["first", "second", "third", "fourth", "fifth"]:
-                match quintile:
-                    case "first":
-                        coins = first_quintile_coins
-                    case "second":
-                        coins = second_quintile_coins
-                    case "third":
-                        coins = third_quintile_coins
-                    case "fourth":
-                        coins = fourth_quintile_coins
-                    case "fifth":
-                        coins = fifth_quintile_coins
-                returns = []
-                market_caps = []
-                for coin_id in coins:
-                    coin_weekly_returns = weekly_returns_data[weekly_returns_data["coind_id"] == coin_id]
-                    coin_weekly_data = coin_weekly_returns[(coin_weekly_returns["year"] == year) & (coin_weekly_returns["week"] == week)]
-                    # ignoring all NaNs
-                    # the most convenient way to check if no cell value are NaN is by applying .isna().sum().sum()
-                    if coin_weekly_data.isna().sum().sum() == 0:
-                        returns.append(coin_weekly_data["return"].tolist()[0])
-                        market_caps.append(coin_weekly_data["market_cap"].tolist()[0])
-                # if all returns are NaN (for example, in the first week of the time period considered)
-                if len(returns) == 0:
-                    # if no value was added
-                    match quintile:
-                        case "first":
-                            first_quintile_returns.append(np.nan)
-                        case "second":
-                            second_quintile_returns.append(np.nan)
-                        case "third":
-                            third_quintile_returns.append(np.nan)
-                        case "fourth":
-                            fourth_quintile_returns.append(np.nan)
-                        case "fifth":
-                            fifth_quintile_returns.append(np.nan)
-                else:
-                    # for every week add the value-weighted market return (the sumproduct of the returns and the market caps divided by the sum of the market caps) and the included coin IDs
-                    weighted_average = (sum(x * y for x, y in zip(returns, market_caps)) / sum(market_caps))
-                    match quintile:
-                        case "first":
-                            first_quintile_returns.append(weighted_average)
-                        case "second":
-                            second_quintile_returns.append(weighted_average)
-                        case "third":
-                            third_quintile_returns.append(weighted_average)
-                        case "fourth":
-                            fourth_quintile_returns.append(weighted_average)
-                        case "fifth":
-                            fifth_quintile_returns.append(weighted_average)
-
-        # computing quintiles for the next week 
-        characteristic_data = []
-        coin_ids_copy = coin_ids.copy().tolist()
-        for coin_id in coin_ids:
-            # the size characteristic for every coin
-            characteristic_data = coins_weekly_returns[coin_id][(coins_weekly_returns[coin_id]["year"] == year) & (coins_weekly_returns[coin_id]["week"] == week)][size_characteristic]
-            if not pd.isna(characteristic_data.tolist()[0]):
-                characteristic_data.append(characteristic_data.tolist()[0])
-            else:
-                # ignoring all coins with missing values
-                coin_ids_copy.remove(coin_id)
-        # finding the coin ids of the top and bottom 20% market cap coins
-        characteristic_data = pd.DataFrame({"coin_id": coin_ids_copy, size_characteristic: characteristic_data})
-        first_quintile = characteristic_data.quantile(q=0.2, interpolation="nearest").tolist()[0]
-        second_quintile = characteristic_data.quantile(q=0.4, interpolation="nearest").tolist()[0]
-        third_quintile = characteristic_data.quantile(q=0.6, interpolation="nearest").tolist()[0]
-        fourth_quintile = characteristic_data.quantile(q=0.8, interpolation="nearest").tolist()[0]
-        # and the according coins
-        first_quintile_coins = characteristic_data["coin_id"][characteristic_data[size_characteristic] <= first_quintile].tolist()
-        second_quintile_coins = characteristic_data["coin_id"][(characteristic_data[size_characteristic] > first_quintile) & (characteristic_data[size_characteristic] <= second_quintile)].tolist()
-        third_quintile_coins = characteristic_data["coin_id"][(characteristic_data[size_characteristic] > second_quintile) & (characteristic_data[size_characteristic] <= third_quintile)].tolist()
-        fourth_quintile_coins = characteristic_data["coin_id"][(characteristic_data[size_characteristic] > third_quintile) & (characteristic_data[size_characteristic] <= fourth_quintile)].tolist()
-        fifth_quintile_coins = characteristic_data["coin_id"][characteristic_data[size_characteristic] > fourth_quintile].tolist()
-
-    return {"first": first_quintile_returns, "second": second_quintile_returns, "third": third_quintile_returns, "fourth": fourth_quintile_returns, "fifth": fifth_quintile_returns}
-
-def render_summary_statistics(daily_trading_data, market_weekly_returns, weekly_returns_data, invert):
-
-    import os, subprocess, easydict, time, numpy as np
+    # shifting the quintile information one period into the future
+    df["quintile"] = df.groupby("coin_id")["quintile"].shift(1)
     
-    # group the data by date
-    grouped = daily_trading_data.groupby(daily_trading_data.index.year)
+    # grouping the dataframe by quintile and date
+    grouped_df = df.groupby(["quintile", "date"])
+
+    # computing the market_cap-weighted return for each quintile in the following week
+    return_df = grouped_df.apply(lambda x: (x["return"] * x["market_cap"]).sum() / x["market_cap"].sum())
+
+    # resetting the index and renaming the columns
+    return_df = return_df.reset_index().rename(columns={0:"return"})
+    
+    # return_df["date"] = return_df["date"].shift(1)
+
+    # pivoting the dataframe to get the return series for each quintile
+    return_df = return_df.pivot(index="date", columns="quintile", values="return")
+
+    # adding back NaN values
+    date_range = pd.date_range(start=min(df.index), end=max(df.index), freq="W")
+    return_df = return_df.reindex(date_range)
+
+    return return_df
+
+def render_summary_statistics(daily_data, market_weekly_data, weekly_data, invert):
+
+    market_weekly_data = market_weekly_data["market_return"]
+    
     # the number of coins per year for which not every return data point is missing
     number_of_coins = {}
-    for year in daily_trading_data.index.year.dropna().unique():
-        sub_df = daily_trading_data[daily_trading_data.index.year == year]
+    for year in daily_data.index.year.dropna().unique():
+        sub_df = daily_data[daily_data.index.year == year]
         counter = 0
         for coin_id in sub_df["coin_id"].dropna().unique():
-            # when at least one return data point is not NaN
-            if sub_df[sub_df["coin_id"] == coin_id]["return"].notna().sum() > 0:
+            # when at least one price data point is not NaN
+            if sub_df[sub_df["coin_id"] == coin_id]["price"].notna().sum() > 0:
                 counter += 1
         number_of_coins[year] = counter
     # the other statistics
-    mean_market_caps = grouped.apply(lambda x: (x["market_cap"].mean())))
+    # group the data by date
+    grouped = daily_data.groupby(daily_data.index.year)
+    mean_market_caps = grouped.apply(lambda x: (x["market_cap"].mean()))
     median_market_caps = grouped.apply(lambda x: (x["market_cap"].median()))
     mean_volumes = grouped.apply(lambda x: (x["total_volume"].mean()))
     median_volumes = grouped.apply(lambda x: (x["total_volume"].median()))
@@ -229,14 +147,14 @@ def render_summary_statistics(daily_trading_data, market_weekly_returns, weekly_
 
     # adding the rows to the LaTeX template
     panel_a_rows = ""
-    for year in daily_trading_data.index.year.unique().dropna():
+    for year in daily_data.index.year.unique().dropna():
         panel_a_rows += f"{year} & {round(number_of_coins[year], 2):,} & {round(mean_market_caps[mean_market_caps.index.year == year] / 1000000, 2):,} & {round(median_market_caps[median_market_caps.index.year == year] / 1000000, 2):,} & {round(mean_volumes[mean_volumes.index.year == year] / 1000, 2):,} & {round(median_volumes[median_volumes.index.year == year] / 1000, 2):,} \\\ "
 
-    panel_a_summary = f"{len(daily_trading_data['coin_id'].unique().sum())} & {round(np.mean(daily_trading_data['market_cap']) / 1000000, 2):,} & {round(np.median(daily_trading_data['market_cap']) / 1000000, 2):,} & {round(np.mean(daily_trading_data['total_volume']) / 1000, 2):,} & {round(np.median(daily_trading_data['total_volume']) / 1000, 2):,}"
-    panel_b_market_return = f"{round(market_weekly_returns.dropna().mean(), 3):,} & {round(market_weekly_returns.dropna().median(), 3):,} & {round(market_weekly_returns.dropna().std(), 3):,} & {round(market_weekly_returns.dropna().skew(), 3):,} & {round(market_weekly_returns.dropna().kurtosis(), 3):,}"
-    panel_b_bitcoin_return = f"{round(weekly_returns_data[weekly_returns_data['coin_id'] == 'bitcoin']['return'].dropna().mean(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'bitcoin']['return'].dropna().median(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'bitcoin']['return'].dropna().std(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'bitcoin']['return'].dropna().skew(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'bitcoin']['return'].dropna().kurtosis(), 3):,}"
-    panel_b_ripple_return = f"{round(weekly_returns_data[weekly_returns_data['coin_id'] == 'ethereum']['return'].dropna().mean(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'ethereum']['return'].dropna().median(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'ethereum']['return'].dropna().std(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'ethereum']['return'].dropna().skew(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'ethereum']['return'].dropna().kurtosis(), 3):,}"
-    panel_b_ethereum_return = f"{round(weekly_returns_data[weekly_returns_data['coin_id'] == 'ripple']['return'].dropna().mean(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'ripple']['return'].dropna().median(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'ripple']['return'].dropna().std(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'ripple']['return'].dropna().skew(), 3):,} & {round(weekly_returns_data[weekly_returns_data['coin_id'] == 'ripple']['return'].dropna().kurtosis(), 3):,}"
+    panel_a_summary = f"{len(daily_data['coin_id'].unique().sum())} & {round(np.mean(daily_data['market_cap']) / 1000000, 2):,} & {round(np.median(daily_data['market_cap']) / 1000000, 2):,} & {round(np.mean(daily_data['total_volume']) / 1000, 2):,} & {round(np.median(daily_data['total_volume']) / 1000, 2):,}"
+    panel_b_market_return = f"{round(market_weekly_data.dropna().mean(), 3):,} & {round(market_weekly_data.dropna().median(), 3):,} & {round(market_weekly_data.dropna().std(), 3):,} & {round(market_weekly_data.dropna().skew(), 3):,} & {round(market_weekly_data.dropna().kurtosis(), 3):,}"
+    panel_b_bitcoin_return = f"{round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().mean(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().median(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().std(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().skew(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().kurtosis(), 3):,}"
+    panel_b_ripple_return = f"{round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().mean(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().median(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().std(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().skew(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().kurtosis(), 3):,}"
+    panel_b_ethereum_return = f"{round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().mean(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().median(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().std(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().skew(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().kurtosis(), 3):,}"
 
     template = template.replace("<Panel A rows>", panel_a_rows)
     template = template.replace("<Panel A summary>", panel_a_summary)
@@ -281,7 +199,6 @@ def render_summary_statistics(daily_trading_data, market_weekly_returns, weekly_
 
 def render_size_strategy_returns(long_short_data, invert):
 
-    import os, subprocess, easydict, time
     from scipy.stats import ttest_1samp
 
     # opens the LaTeX summary statistics table template as a string
@@ -352,7 +269,6 @@ def render_size_strategy_returns(long_short_data, invert):
 
 def render_momentum_strategy_returns(long_short_data, invert):
 
-    import os, subprocess, easydict, time
     from scipy.stats import ttest_1samp
 
     # opens the LaTeX summary statistics table template as a string
