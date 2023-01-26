@@ -1,4 +1,4 @@
-import pandas as pd, numpy as np, math, time, os, datetime as dt, data.coingecko_data as coingecko_data, helpers
+import pandas as pd, numpy as np, math, time, os, datetime as dt, data.coingecko_data as coingecko_data, helpers, data.fred_data as fred_data
 pd.options.mode.chained_assignment = None
 from wand.image import Image
 
@@ -46,8 +46,17 @@ else:
     # this function converts the frequency and also computes the retunrs series
     # this step can take a while
     weekly_returns_data = helpers.convert_frequency(daily_trading_data, method="last", returns=True)
+    # some returns are exorbitant (above 10000%)and need to be removed
+    weekly_returns_data["return"].where(weekly_returns_data["return"] < 100, np.nan, inplace=True)
     # downloading the data
-    weekly_returns_data.to_csv(directory + "/cg_weekly_returns_data.csv")    
+    weekly_returns_data.to_csv(directory + "/cg_weekly_returns_data.csv")
+
+# computing the risk-free rate
+# a pd dataframe with columns for date and DGS1MO
+risk_free_rate_daily_data = fred_data.retrieve_data(start_date, end_date, series_ids = ["DGS1MO"], download=False)
+# converting to weekly data
+date_range = pd.date_range(start=min(risk_free_rate_daily_data.index), end=max(risk_free_rate_daily_data.index), freq="W-SUN")
+risk_free_rate = risk_free_rate_daily_data.resample("W-SUN").last().reindex(date_range)
 
 # downloading the data since the returns computation process might also take a long time
 if any(os.path.exists(directory + file) for file in files[3:]):
@@ -55,14 +64,18 @@ if any(os.path.exists(directory + file) for file in files[3:]):
     print("The market returns data has already been computed.")
     market_weekly_returns = pd.read_csv(directory + "/market_weekly_returns.csv", index_col=["date"])
 else:
-    # Compute the weighted average of the returns using the market capitalization as the weight
+    # Compute the excess weighted average of the returns using the market capitalization as the weight
     market_weekly_returns = weekly_returns_data.groupby(weekly_returns_data.index).apply(lambda x: (x["return"]*x["market_cap"]).sum()/x["market_cap"].sum())
     market_weekly_returns.rename("market_return", inplace=True)
+    market_weekly_returns = market_weekly_returns.to_frame()
     market_weekly_returns.index = pd.to_datetime(market_weekly_returns.index)
     # filling in the missing values with NaNs
     date_range = pd.date_range(start=min(weekly_returns_data.index), end=max(weekly_returns_data.index), freq="W")
     market_weekly_returns = market_weekly_returns.reindex(date_range)
     market_weekly_returns.index.name = "date"
+    market_weekly_returns["risk_free_rate"] = risk_free_rate["DGS1MO"].tolist()
+    market_weekly_returns["market_return"] = market_weekly_returns["market_return"] - market_weekly_returns["risk_free_rate"]
+    market_weekly_returns.drop("risk_free_rate", inplace=True, axis=1)
     # downloading the data
     market_weekly_returns.to_csv(directory + "/market_weekly_returns.csv")
 

@@ -81,6 +81,8 @@ def convert_frequency(data, method, returns=False):
         data = data.groupby("coin_id").apply(lambda x: x.resample("W-SUN").last().reindex(date_range)).reset_index(level="coin_id", drop=True)
     elif method == "max":
         data = data.groupby("coin_id").apply(lambda x: x.resample("W-SUN").max().reindex(date_range)).reset_index(level="coin_id", drop=True)
+    elif method == "mean":
+        data = data.groupby("coin_id").apply(lambda x: x.resample("W-SUN").mean().reindex(date_range)).reset_index(level="coin_id", drop=True)
     
     # .pct_change() defaults to 0 for missing data
     if returns:
@@ -95,7 +97,7 @@ def convert_frequency(data, method, returns=False):
 def quintile_returns(df, size_characteristic):
 
     # creating a new dataframe with the quintile labels for each coin based on the size_characteristic for that week
-    df["quintile"] = df.groupby(["date"])[size_characteristic].transform(lambda x: pd.qcut(x, 5, labels=[size_characteristic + "_Q1", size_characteristic + " Q2", size_characteristic + " Q3", size_characteristic + " Q4", size_characteristic + " Q5"]))
+    df["quintile"] = df.groupby(["date"])[size_characteristic].transform(lambda x: pd.qcut(x, 5, labels=[size_characteristic + "_q1", size_characteristic + "_q2", size_characteristic + "_q3", size_characteristic + "_q4", size_characteristic + "_q5"]))
 
     # shifting the quintile information one period into the future
     df["quintile"] = df.groupby("coin_id")["quintile"].shift(1)
@@ -121,26 +123,18 @@ def quintile_returns(df, size_characteristic):
     return return_df
 
 def render_summary_statistics(daily_data, market_weekly_data, weekly_data, invert):
-
-    market_weekly_data = market_weekly_data["market_return"]
     
     # the number of coins per year for which not every return data point is missing
-    number_of_coins = {}
-    for year in daily_data.index.year.dropna().unique():
-        sub_df = daily_data[daily_data.index.year == year]
-        counter = 0
-        for coin_id in sub_df["coin_id"].dropna().unique():
-            # when at least one price data point is not NaN
-            if sub_df[sub_df["coin_id"] == coin_id]["price"].notna().sum() > 0:
-                counter += 1
-        number_of_coins[year] = counter
+    number_of_coins = daily_data.groupby(daily_data.index.year).apply(lambda x: x.groupby("coin_id").apply(lambda x: x["price"].notna().sum() > 0).sum())
+
     # the other statistics
     # group the data by date
     grouped = daily_data.groupby(daily_data.index.year)
-    mean_market_caps = grouped.apply(lambda x: (x["market_cap"].mean()))
-    median_market_caps = grouped.apply(lambda x: (x["market_cap"].median()))
-    mean_volumes = grouped.apply(lambda x: (x["total_volume"].mean()))
-    median_volumes = grouped.apply(lambda x: (x["total_volume"].median()))
+    grouped_stats = grouped[["market_cap", "total_volume"]].agg(["mean", "median"])
+    mean_market_caps = grouped_stats.loc[:, ("market_cap", "mean")]
+    median_market_caps = grouped_stats.loc[:, ("market_cap", "median")]
+    mean_volumes = grouped_stats.loc[:, ("total_volume", "mean")]
+    median_volumes = grouped_stats.loc[:, ("total_volume", "median")]
     
     # opens the LaTeX summary statistics table template as a string
     template = open("latex_templates/summary_statistics.tex", "r").read()
@@ -148,10 +142,10 @@ def render_summary_statistics(daily_data, market_weekly_data, weekly_data, inver
     # adding the rows to the LaTeX template
     panel_a_rows = ""
     for year in daily_data.index.year.unique().dropna():
-        panel_a_rows += f"{year} & {round(number_of_coins[year], 2):,} & {round(mean_market_caps[mean_market_caps.index.year == year] / 1000000, 2):,} & {round(median_market_caps[median_market_caps.index.year == year] / 1000000, 2):,} & {round(mean_volumes[mean_volumes.index.year == year] / 1000, 2):,} & {round(median_volumes[median_volumes.index.year == year] / 1000, 2):,} \\\ "
+        panel_a_rows += f"{year} & {number_of_coins[number_of_coins.index == year].tolist()[0]} & {round(mean_market_caps[mean_market_caps.index == year].tolist()[0] / 1000000, 2):,} & {round(median_market_caps[median_market_caps.index == year].tolist()[0] / 1000000, 2):,} & {round(mean_volumes[mean_volumes.index == year].tolist()[0] / 1000, 2):,} & {round(median_volumes[median_volumes.index == year].tolist()[0] / 1000, 2):,} \\\ "
 
     panel_a_summary = f"{len(daily_data['coin_id'].unique().sum())} & {round(np.mean(daily_data['market_cap']) / 1000000, 2):,} & {round(np.median(daily_data['market_cap']) / 1000000, 2):,} & {round(np.mean(daily_data['total_volume']) / 1000, 2):,} & {round(np.median(daily_data['total_volume']) / 1000, 2):,}"
-    panel_b_market_return = f"{round(market_weekly_data.dropna().mean(), 3):,} & {round(market_weekly_data.dropna().median(), 3):,} & {round(market_weekly_data.dropna().std(), 3):,} & {round(market_weekly_data.dropna().skew(), 3):,} & {round(market_weekly_data.dropna().kurtosis(), 3):,}"
+    panel_b_market_return = f"{round(np.mean(market_weekly_data.dropna()), 3):,} & {round(market_weekly_data.dropna().median(), 3):,} & {round(np.std(market_weekly_data.dropna()), 3):,} & {round(market_weekly_data.dropna().skew(), 3):,} & {round(market_weekly_data.dropna().kurtosis(), 3):,}"
     panel_b_bitcoin_return = f"{round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().mean(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().median(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().std(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().skew(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().kurtosis(), 3):,}"
     panel_b_ripple_return = f"{round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().mean(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().median(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().std(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().skew(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().kurtosis(), 3):,}"
     panel_b_ethereum_return = f"{round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().mean(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().median(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().std(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().skew(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().kurtosis(), 3):,}"
@@ -197,22 +191,22 @@ def render_summary_statistics(daily_data, market_weekly_data, weekly_data, inver
         image.save(pdf_path)
         time.sleep(3)
 
-def render_size_strategy_returns(long_short_data, invert):
+def render_quintiles(data, template, variables, invert):
 
     from scipy.stats import ttest_1samp
 
     # opens the LaTeX summary statistics table template as a string
-    template = open("latex_templates/size_strategy_returns.tex", "r").read()
+    template = open(template, "r").read()
 
-    for size_characteristic in ["log_market_cap", "log_price", "log_max_price", "age"]:
+    for var in variables:
         mean_row = ""
         t_row = ""
         for quintile in ["first", "second", "third", "fourth", "fifth", "_excess_ls"]:
             if quintile == "_excess_ls":
                 # also adding the value for the long-short strategy, 5-1
-                data = long_short_data[size_characteristic + quintile]
+                data = data[var + quintile]
             else:
-                data = long_short_data[size_characteristic + "_" + quintile + "_quintile_return"]
+                data = data[var + "_" + quintile + "_quintile_return"]
             # computing the statistics
             mean = data.mean(skipna=True)
             # per default, this function performs a two-sided t-test
@@ -230,78 +224,8 @@ def render_size_strategy_returns(long_short_data, invert):
             mean_row += " & " + str(round(mean, 3)) + asterisk + ""
             t_row += " & (" + str(round(t_statstic, 2)) + ")"
                 
-        template = template.replace("<" + size_characteristic + "_mean>", mean_row)
-        template = template.replace("<" + size_characteristic + "_t>", t_row)
-
-    args = easydict.EasyDict({})
-
-    with open('cover.tex','w') as f:
-        f.write(template%args.__dict__)
-
-    cmd = ['pdflatex', '-interaction', 'nonstopmode', 'cover.tex']
-    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-    proc.communicate()
-
-    retcode = proc.returncode
-    if not retcode == 0:
-        os.unlink('cover.pdf')
-        raise ValueError('Error {} executing command: {}'.format(retcode, ' '.join(cmd))) 
-
-    os.unlink('cover.tex')
-    os.unlink('cover.log')
-    os.unlink('cover.aux')
-
-    time.sleep(3)
-    # the path where the PDF is stored
-    pdf_path = os.getcwd() + "/cover.pdf"
-
-    # inverting the colors in the PDF in case the user is using dark mode
-    if invert:
-
-        from pdf2image import convert_from_path
-        from PIL import ImageChops
-
-        pil_image_lst = convert_from_path(pdf_path)
-        image = pil_image_lst[0]
-        image = ImageChops.invert(image)
-        image.save(pdf_path)
-        time.sleep(3)
-
-def render_momentum_strategy_returns(long_short_data, invert):
-
-    from scipy.stats import ttest_1samp
-
-    # opens the LaTeX summary statistics table template as a string
-    template = open("latex_templates/momentum_strategy_returns.tex", "r").read()
-
-    for momentum_return_series in ["one_week_momentum", "two_week_momentum", "three_week_momentum", "four_week_momentum", "one_to_four_week_momentum", "eight_week_momentum", "sixteen_week_momentum", "fifty_week_momentum", "one_hundred_week_momentum"]:
-        mean_row = ""
-        t_row = ""
-        for quintile in ["first", "second", "third", "fourth", "fifth", "_excess_ls"]:
-            if quintile == "_excess_ls":
-                # also adding the value for the long-short strategy, 5-1
-                data = long_short_data[momentum_return_series + quintile]
-            else:
-                data = long_short_data[momentum_return_series + "_" + quintile + "_quintile_return"]
-            # computing the statistics
-            mean = data.mean(skipna=True)
-            # per default, this function performs a two-sided t-test
-            t_test = ttest_1samp(data, 0, nan_policy="omit")
-            t_statstic = t_test[0]
-            p_value = t_test[1]
-            asterisk = ""
-            match p_value:
-                case _ if p_value <= 0.01:
-                    asterisk = "***"
-                case _ if p_value <= 0.05:
-                    asterisk = "**"
-                case _ if p_value <= 0.1:
-                    asterisk = "*"
-            mean_row += " & " + str(round(mean, 3)) + asterisk + ""
-            t_row += " & (" + str(round(t_statstic, 2)) + ")"
-                
-        template = template.replace("<" + momentum_return_series + "_mean>", mean_row)
-        template = template.replace("<" + momentum_return_series + "_t>", t_row)
+        template = template.replace("<" + var + "_mean>", mean_row)
+        template = template.replace("<" + var + "_t>", t_row)
 
     args = easydict.EasyDict({})
 

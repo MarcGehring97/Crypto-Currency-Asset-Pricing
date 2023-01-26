@@ -14,18 +14,19 @@ The function "retrieve_data" returns a pd dataframe with columns for date, DEXUS
 
 __all__ = ["retrieve_data"]
 
-from typing import dataclass_transform
-
-
 def retrieve_data(start_date, end_date, path="", series_ids=["DGS1MO", "DEXUSAL", "DEXCAUS", "DEXUSEU", "DEXSIUS", "DEXUSUK"], download=True):
 
-    import requests, os, pandas as pd, numpy as np, json
+    import requests, os, pandas as pd, numpy as np, json, datetime
 
     api_key = json.load(open("/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/fred_key.json"))["api_key"]
 
     date_range = pd.date_range(start=start_date, end=end_date, freq="D")
 
     historic_data = {"date": date_range}
+
+    # the API call checks if the date is not in the future and is based on UTC-6
+    if datetime.datetime.now().hour <= 6:
+        end_date = end_date - pd.Timedelta(days=1)
 
     for series_id in series_ids:
         historic_data[series_id] = []
@@ -70,6 +71,7 @@ def retrieve_data(start_date, end_date, path="", series_ids=["DGS1MO", "DEXUSAL"
 
     historic_data = pd.DataFrame(historic_data)
     historic_data.set_index("date", inplace=True, drop=True)
+    historic_data = historic_data.reindex(date_range)
 
     print("Count total NaN at each column in a dataframe:\n\n", historic_data.isnull().sum())
 
@@ -86,4 +88,4 @@ def retrieve_data(start_date, end_date, path="", series_ids=["DGS1MO", "DEXUSAL"
         return historic_data
 
 # import pandas as pd
-# print(retrieve_data(start_date=pd.to_datetime("2014-01-01"), end_date=pd.to_datetime("today"), series_ids = ["DGS1MO"], download=False).head(60))
+# print(retrieve_data(start_date=pd.to_datetime("2014-01-01"), end_date=pd.to_datetime("today"), series_ids = ["DGS1MO"], download=False).tail(50))

@@ -55,5 +55,5 @@ def retrieve_data(start_date, end_date, path="", kw_list=["Bitcoin"], download=T
     else: 
         return data
 
-import pandas as pd
-print(retrieve_data(start_date=pd.to_datetime("2014-01-01"), end_date=pd.to_datetime("today"), download=False).head(62))
+# import pandas as pd
+# print(retrieve_data(start_date=pd.to_datetime("2014-01-01"), end_date=pd.to_datetime("today"), download=False).head(62))

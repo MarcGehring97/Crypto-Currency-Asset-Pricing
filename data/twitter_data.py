@@ -67,6 +67,6 @@ def retrieve_data(start_date, end_date, path="", query=["Bitcoin"], download=Tru
     else: 
         return df
 
-import pandas as pd, json
-bearer_token = json.load(open("/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/twitter_bearer_token_main.json"))["bearer_token"]
-print(retrieve_data(start_date=pd.to_datetime("2014-01-01"), end_date=pd.to_datetime("today"), bearer_token=bearer_token, download=False).head(50))
+# import pandas as pd, json
+# bearer_token = json.load(open("/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/twitter_bearer_token_main.json"))["bearer_token"]
+# print(retrieve_data(start_date=pd.to_datetime("2014-01-01"), end_date=pd.to_datetime("today"), bearer_token=bearer_token, download=False).head(50))

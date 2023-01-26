@@ -57,6 +57,6 @@ def retrieve_all(start_date, end_date, path="", download=True):
     else: 
         return data
     
-import pandas as pd
-print(retrieve_all(start_date=pd.to_datetime("2014-01-01"), end_date=pd.to_datetime("today"), download=False).head(50))
+# import pandas as pd
+# print(retrieve_all(start_date=pd.to_datetime("2014-01-01"), end_date=pd.to_datetime("today"), download=False).head(50))
 

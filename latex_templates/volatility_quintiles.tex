@@ -1,0 +1,37 @@
+\documentclass{article}
+\usepackage{booktabs}
+\usepackage{ragged2e}
+\usepackage{multirow}
+
+\begin{document}
+    \begin{center}
+        \textbf{
+        Table VI
+        \\
+        Volatility Strategy Returns
+        }
+        \begin{justify}
+            \footnotesize{
+                This table reports the mean quintile portfolio returns based on the standard deviation of price volume. The mean returns are the time-series averages of weekly value-weighted portfolio excess returns. *, **, and *** denote significance at the 10\symbol{37}, 5\symbol{37}, and 1\symbol{37} levels.
+            }
+        \end{justify}
+        \-
+        \begin{tabular}{lcccccr}
+            \toprule
+            \multicolumn{1}{c}{} & \multicolumn{6}{c}{Quintiles}
+            \\
+            \cmidrule(lr){2-7}
+            & 1 & 2 & 3 & 4 & 5 & 5-1
+            \\
+            \midrule
+            \multicolumn{1}{l}{\textbf{STDPRCVOL}} & \multicolumn{1}{c}{\textbf{Low}} & \multicolumn{3}{c}{} & \multicolumn{1}{c}{\textbf{High}}
+            \\
+            Mean<x_mean>
+            \\
+            \textit{t}(Mean)<x_t>
+            \\
+            \bottomrule
+            \pagenumbering{gobble}
+        \end{tabular}
+    \end{center}
+\end{document}

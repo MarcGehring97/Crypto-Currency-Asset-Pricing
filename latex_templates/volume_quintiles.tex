@@ -6,13 +6,13 @@
 \begin{document}
     \begin{center}
         \textbf{
-        Table IV
+        Table V
         \\
-        Size Strategy Returns
+        Volume Strategy Returns
         }
         \begin{justify}
             \footnotesize{
-                This table reports the mean quintile portfolio returns based on the past one-week, two-week, three- week, four-week, and one-to-four-week return measures. The mean returns are the time-series averages of weekly value-weighted portfolio excess returns. *, **, and *** denote significance at the 10\symbol{37}, 5\symbol{37}, and 1\symbol{37} levels.
+                This table reports the mean quintile portfolio returns based on the price volume measure. The mean returns are the time-series averages of weekly value-weighted portfolio excess returns. *, **, and *** denote significance at the 10\symbol{37}, 5\symbol{37}, and 1\symbol{37} levels.
             }
         \end{justify}
         \-
@@ -24,59 +24,23 @@
             & 1 & 2 & 3 & 4 & 5 & 5-1
             \\
             \midrule
-            \multicolumn{1}{l}{\textbf{r 1,0}} & \multicolumn{1}{c}{\textbf{Low}} & \multicolumn{3}{c}{} & \multicolumn{1}{c}{\textbf{High}}
+            \multicolumn{1}{l}{\textbf{VOL}} & \multicolumn{1}{c}{\textbf{Low}} & \multicolumn{3}{c}{} & \multicolumn{1}{c}{\textbf{High}}
             \\
-            Mean<one_week_momentum_mean>
+            Mean<log_average_volume_mean>
             \\
-            \textit{t}(Mean)<one_week_momentum_t>
+            \textit{t}(Mean)<log_average_volume_t>
             \\ [0.2cm]
-            \multicolumn{1}{l}{\textbf{r 2,0}} & \multicolumn{1}{c}{\textbf{Low}} & \multicolumn{3}{c}{} & \multicolumn{1}{c}{\textbf{High}}
+            \multicolumn{1}{l}{\textbf{PRCVOL}} & \multicolumn{1}{c}{\textbf{Low}} & \multicolumn{3}{c}{} & \multicolumn{1}{c}{\textbf{High}}
             \\
-            Mean<two_week_momentum_mean>
+            Mean<price_times_volume_mean>
             \\
-            \textit{t}(Mean)<two_week_momentum_t>
+            \textit{t}(Mean)<price_times_volume_t>
             \\ [0.2cm]
-            \multicolumn{1}{l}{\textbf{r 3,0}} & \multicolumn{1}{c}{\textbf{Low}} & \multicolumn{3}{c}{} & \multicolumn{1}{c}{\textbf{High}}
+            \multicolumn{1}{l}{\textbf{VOLSCALED}} & \multicolumn{1}{c}{\textbf{Low}} & \multicolumn{3}{c}{} & \multicolumn{1}{c}{\textbf{High}}
             \\
-            Mean<three_week_momentum_mean>
+            Mean<price_times_volume_scaled_market_cap_mean>
             \\
-            \textit{t}(Mean)<three_week_momentum_t>
-            \\ [0.2cm]
-            \multicolumn{1}{l}{\textbf{r 4,0}} & \multicolumn{1}{c}{\textbf{Low}} & \multicolumn{3}{c}{} & \multicolumn{1}{c}{\textbf{High}}
-            \\
-            Mean<four_week_momentum_mean>
-            \\
-            \textit{t}(Mean)<four_week_momentum_t>
-            \\
-            \multicolumn{1}{l}{\textbf{r 4,1}} & \multicolumn{1}{c}{\textbf{Low}} & \multicolumn{3}{c}{} & \multicolumn{1}{c}{\textbf{High}}
-            \\
-            Mean<one_to_four_week_momentum_mean>
-            \\
-            \textit{t}(Mean)<one_to_four_week_momentume_t>
-            \\
-            \multicolumn{1}{l}{\textbf{r 8,0}} & \multicolumn{1}{c}{\textbf{Low}} & \multicolumn{3}{c}{} & \multicolumn{1}{c}{\textbf{High}}
-            \\
-            Mean<eight_week_momentum_mean>
-            \\
-            \textit{t}(Mean)<eight_week_momentum_t>
-            \\
-            \multicolumn{1}{l}{\textbf{r 16,0}} & \multicolumn{1}{c}{\textbf{Low}} & \multicolumn{3}{c}{} & \multicolumn{1}{c}{\textbf{High}}
-            \\
-            Mean<sixteen_week_momentum_mean>
-            \\
-            \textit{t}(Mean)<sixteen_week_momentum_t>
-            \\
-            \multicolumn{1}{l}{\textbf{r 50,0}} & \multicolumn{1}{c}{\textbf{Low}} & \multicolumn{3}{c}{} & \multicolumn{1}{c}{\textbf{High}}
-            \\
-            Mean<fifty_week_momentum_mean>
-            \\
-            \textit{t}(Mean)<fifty_week_momentum_t>
-            \\
-            \multicolumn{1}{l}{\textbf{r 100,0}} & \multicolumn{1}{c}{\textbf{Low}} & \multicolumn{3}{c}{} & \multicolumn{1}{c}{\textbf{High}}
-            \\
-            Mean<one_hundred_week_momentum_mean>
-            \\
-            \textit{t}(Mean)<one_hundred_week_momentum_t>
+            \textit{t}(Mean)<price_times_volume_scaled_market_cap_t>
             \\
             \bottomrule
             \pagenumbering{gobble}
