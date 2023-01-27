@@ -96,8 +96,34 @@ def convert_frequency(data, method, returns=False):
 # it returns a list for the returns of the top 20% and the bottom 20% of a given characteristic
 def quintile_returns(df, size_characteristic):
 
+    # adapting the Pandas qcut function for the edge cases
+    def q_cut(x, size_characteristic):
+        unique_var = len(x.unique())
+        
+        if x.isna().any() or x.isnull().any():
+            unique_var -= 1
+        
+        match unique_var:
+            case _ if unique_var >= 5:
+                labels = [size_characteristic + "_q1", size_characteristic + "_q2", size_characteristic + "_q3", size_characteristic + "_q4", size_characteristic + "_q5"]
+            # in the unlikely cases that there are fewer than 5 unique values for a given date
+            case _ if unique_var == 4:
+                labels = [size_characteristic + "_q1", size_characteristic + "_q2", size_characteristic + "_q4", size_characteristic + "_q5"]
+            case _ if unique_var == 3:
+                labels = [size_characteristic + "_q1", size_characteristic + "_q3", size_characteristic + "_q5"]
+            case _ if unique_var == 2:
+                labels = [size_characteristic + "_q1",size_characteristic + "_q5"]
+            case _ if unique_var <= 1:
+                labels = [size_characteristic + "_q3"]
+        
+        if unique_var == 0:
+            return pd.Series(np.nan * len(x))
+
+        output = pd.qcut(x, min(unique_var, 5), labels= labels, duplicates = "drop")
+        return output
+
     # creating a new dataframe with the quintile labels for each coin based on the size_characteristic for that week
-    df["quintile"] = df.groupby(["date"])[size_characteristic].transform(lambda x: pd.qcut(x, 5, labels=[size_characteristic + "_q1", size_characteristic + "_q2", size_characteristic + "_q3", size_characteristic + "_q4", size_characteristic + "_q5"]))
+    df["quintile"] = df.groupby(["date"])[size_characteristic].transform(lambda x: q_cut(x, size_characteristic))
 
     # shifting the quintile information one period into the future
     df["quintile"] = df.groupby("coin_id")["quintile"].shift(1)
@@ -117,7 +143,7 @@ def quintile_returns(df, size_characteristic):
     return_df = return_df.pivot(index="date", columns="quintile", values="return")
 
     # adding back NaN values
-    date_range = pd.date_range(start=min(df.index), end=max(df.index), freq="W")
+    date_range = pd.date_range(start=df.index.min(), end=df.index.max(), freq="W")
     return_df = return_df.reindex(date_range)
 
     return return_df
@@ -145,7 +171,7 @@ def render_summary_statistics(daily_data, market_weekly_data, weekly_data, inver
         panel_a_rows += f"{year} & {number_of_coins[number_of_coins.index == year].tolist()[0]} & {round(mean_market_caps[mean_market_caps.index == year].tolist()[0] / 1000000, 2):,} & {round(median_market_caps[median_market_caps.index == year].tolist()[0] / 1000000, 2):,} & {round(mean_volumes[mean_volumes.index == year].tolist()[0] / 1000, 2):,} & {round(median_volumes[median_volumes.index == year].tolist()[0] / 1000, 2):,} \\\ "
 
     panel_a_summary = f"{len(daily_data['coin_id'].unique().sum())} & {round(np.mean(daily_data['market_cap']) / 1000000, 2):,} & {round(np.median(daily_data['market_cap']) / 1000000, 2):,} & {round(np.mean(daily_data['total_volume']) / 1000, 2):,} & {round(np.median(daily_data['total_volume']) / 1000, 2):,}"
-    panel_b_market_return = f"{round(np.mean(market_weekly_data.dropna()), 3):,} & {round(market_weekly_data.dropna().median(), 3):,} & {round(np.std(market_weekly_data.dropna()), 3):,} & {round(market_weekly_data.dropna().skew(), 3):,} & {round(market_weekly_data.dropna().kurtosis(), 3):,}"
+    panel_b_market_return = f"{round(np.mean(market_weekly_data['market_return'].dropna()), 3):,} & {round(market_weekly_data['market_return'].dropna().median(), 3):,} & {round(np.std(market_weekly_data['market_return'].dropna()), 3):,} & {round(market_weekly_data['market_return'].dropna().skew(), 3):,} & {round(market_weekly_data['market_return'].dropna().kurtosis(), 3):,}"
     panel_b_bitcoin_return = f"{round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().mean(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().median(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().std(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().skew(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().kurtosis(), 3):,}"
     panel_b_ripple_return = f"{round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().mean(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().median(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().std(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().skew(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().kurtosis(), 3):,}"
     panel_b_ethereum_return = f"{round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().mean(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().median(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().std(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().skew(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().kurtosis(), 3):,}"
