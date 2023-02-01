@@ -98,29 +98,27 @@ def quintile_returns(df, size_characteristic):
 
     # adapting the Pandas qcut function for the edge cases
     def q_cut(x, size_characteristic):
-        unique_var = len(x.unique())
-        
-        if x.isna().any() or x.isnull().any():
-            unique_var -= 1
-        
-        match unique_var:
-            case _ if unique_var >= 5:
-                labels = [size_characteristic + "_q1", size_characteristic + "_q2", size_characteristic + "_q3", size_characteristic + "_q4", size_characteristic + "_q5"]
-            # in the unlikely cases that there are fewer than 5 unique values for a given date
-            case _ if unique_var == 4:
-                labels = [size_characteristic + "_q1", size_characteristic + "_q2", size_characteristic + "_q4", size_characteristic + "_q5"]
-            case _ if unique_var == 3:
-                labels = [size_characteristic + "_q1", size_characteristic + "_q3", size_characteristic + "_q5"]
-            case _ if unique_var == 2:
-                labels = [size_characteristic + "_q1",size_characteristic + "_q5"]
-            case _ if unique_var <= 1:
-                labels = [size_characteristic + "_q3"]
-        
-        if unique_var == 0:
+
+        if x.isna().all():
             return pd.Series(np.nan * len(x))
 
-        output = pd.qcut(x, min(unique_var, 5), labels= labels, duplicates = "drop")
-        return output
+        # this step is necessary since qcut sometimes assigns fewer categorites to the data than specified
+        # Compute quantiles for all non-missing values
+        mask = x.notna()        
+        # computing quintiles manually since the Pandas's qcut() results in too many complications
+        quintile_indices = np.digitize(x[mask], np.percentile(x[mask], [20, 40, 60, 80]), right=False)
+        # mapping the quintiles to the appropriate quintile values 
+        if len(np.unique(quintile_indices)) == 4:
+            quintile_indices = np.vectorize(lambda x: 0 if x == 1 else (1 if x == 2 else x))(quintile_indices)
+        if len(np.unique(quintile_indices)) == 3:
+            quintile_indices = np.vectorize(lambda x: 0 if x == 2 else (2 if x == 3 else x))(quintile_indices)
+        elif len(np.unique(quintile_indices)) == 2:
+            quintile_indices = np.vectorize(lambda x: 0 if x == 3 else x)(quintile_indices)
+            
+        quintiles = [size_characteristic + "_q" + str(i + 1) for i in quintile_indices]
+        x = x.copy()
+        x.loc[mask] = quintiles
+        return x
 
     # creating a new dataframe with the quintile labels for each coin based on the size_characteristic for that week
     df["quintile"] = df.groupby(["date"])[size_characteristic].transform(lambda x: q_cut(x, size_characteristic))
@@ -227,18 +225,12 @@ def render_quintiles(data, template, variables, invert):
     for var in variables:
         mean_row = ""
         t_row = ""
-        for quintile in ["first", "second", "third", "fourth", "fifth", "_excess_ls"]:
-            if quintile == "_excess_ls":
-                # also adding the value for the long-short strategy, 5-1
-                data = data[var + quintile]
-            else:
-                data = data[var + "_" + quintile + "_quintile_return"]
+        for quintile in ["_q1", "_q2", "_q3", "_q4", "_q5", "_excess_ls"]:
+            column = data[var + quintile]
             # computing the statistics
-            mean = data.mean(skipna=True)
+            mean = column.mean(skipna=True)
             # per default, this function performs a two-sided t-test
-            t_test = ttest_1samp(data, 0, nan_policy="omit")
-            t_statstic = t_test[0]
-            p_value = t_test[1]
+            t_statstic, p_value = ttest_1samp(column, 0, nan_policy="omit")
             asterisk = ""
             match p_value:
                 case _ if p_value <= 0.01:
