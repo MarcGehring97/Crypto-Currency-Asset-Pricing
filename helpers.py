@@ -44,6 +44,16 @@ __all__ = ["merge_data", "convert_frequency", "quintile_returns", "tertile_retur
 
 import pandas as pd, os, subprocess, easydict, time, numpy as np
 
+# a function that returns the asterisk for the p-values
+def asterisk_for_p_value(p_value):
+    match p_value:
+        case _ if p_value <= 0.01:
+            return "***"
+        case _ if p_value <= 0.05:
+            return "**"
+        case _ if p_value <= 0.1:
+            return "*"
+
 # reading all data subsets as data frames
 def merge_data(path="", download=True):
 
@@ -242,9 +252,9 @@ def render_summary_statistics(daily_data, market_weekly_data, weekly_data, inver
     # adding the rows to the LaTeX template
     panel_a_rows = ""
     for year in daily_data.index.year.unique().dropna():
-        panel_a_rows += f"{year} & {number_of_coins[number_of_coins.index == year].tolist()[0]} & {round(mean_market_caps[mean_market_caps.index == year].tolist()[0] / 1000000, 2):,} & {round(median_market_caps[median_market_caps.index == year].tolist()[0] / 1000000, 2):,} & {round(mean_volumes[mean_volumes.index == year].tolist()[0] / 1000, 2):,} & {round(median_volumes[median_volumes.index == year].tolist()[0] / 1000, 2):,} \\\ "
+        panel_a_rows += f"{year} & {'{:,}'.format(number_of_coins[number_of_coins.index == year].tolist()[0])} & {round(mean_market_caps[mean_market_caps.index == year].tolist()[0] / 1000000, 2):,} & {round(median_market_caps[median_market_caps.index == year].tolist()[0] / 1000000, 2):,} & {round(mean_volumes[mean_volumes.index == year].tolist()[0] / 1000, 2):,} & {round(median_volumes[median_volumes.index == year].tolist()[0] / 1000, 2):,} \\\ "
 
-    panel_a_summary = f"{len(daily_data['coin_id'].unique().sum())} & {round(np.mean(daily_data['market_cap']) / 1000000, 2):,} & {round(np.median(daily_data['market_cap']) / 1000000, 2):,} & {round(np.mean(daily_data['total_volume']) / 1000, 2):,} & {round(np.median(daily_data['total_volume']) / 1000, 2):,}"
+    panel_a_summary = f"{'{:,}'.format(daily_data['coin_id'].nunique())} & {round(daily_data['market_cap'].mean(skipna=True) / 1000000, 2):,} & {round(daily_data['market_cap'].median(skipna=True) / 1000000, 2):,} & {round(daily_data['total_volume'].mean(skipna=True) / 1000, 2):,} & {round(daily_data['total_volume'].median(skipna=True) / 1000, 2):,}"
     panel_b_market_return = f"{round(np.mean(market_weekly_data['market_excess_return'].dropna()), 3):,} & {round(market_weekly_data['market_excess_return'].dropna().median(), 3):,} & {round(np.std(market_weekly_data['market_excess_return'].dropna()), 3):,} & {round(market_weekly_data['market_excess_return'].dropna().skew(), 3):,} & {round(market_weekly_data['market_excess_return'].dropna().kurtosis(), 3):,}"
     panel_b_bitcoin_return = f"{round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().mean(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().median(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().std(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().skew(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().kurtosis(), 3):,}"
     panel_b_ripple_return = f"{round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().mean(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().median(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().std(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().skew(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().kurtosis(), 3):,}"
@@ -307,14 +317,7 @@ def render_quintiles(data, template, variables, invert):
             mean = column.mean(skipna=True)
             # per default, this function performs a two-sided t-test
             t_statstic, p_value = ttest_1samp(column, 0, nan_policy="omit")
-            asterisk = ""
-            match p_value:
-                case _ if p_value <= 0.01:
-                    asterisk = "***"
-                case _ if p_value <= 0.05:
-                    asterisk = "**"
-                case _ if p_value <= 0.1:
-                    asterisk = "*"
+            asterisk = asterisk_for_p_value(p_value)
             mean_row += " & " + str(round(mean, 3)) + asterisk + ""
             t_row += " & (" + str(round(t_statstic, 2)) + ")"
                 
@@ -355,103 +358,60 @@ def render_quintiles(data, template, variables, invert):
         image.save(pdf_path)
         time.sleep(3)
 
-def render_one_factor_model_statistics(data, template, variables, invert):
+def render_factor_models_statistics(data, template, variables, invert):
 
     # opens the LaTeX factor model statistics table template as a string
     template = open(template, "r").read()
 
-    row = ""
-    for var in variables:
-        row_data = data[data["ls_strategy"] == var]
-        row += " & " + str(round(row_data["alpha"], 3))
-        # computing the asterisks for the alphas
-        asterisk_alpha = ""
-        match row_data["p_alpha"]:
-            case _ if row_data["p_alpha"] <= 0.01:
-                asterisk_alpha = "***"
-            case _ if row_data["p_alpha"] <= 0.05:
-                asterisk_alpha = "**"
-            case _ if row_data["p_alpha"] <= 0.1:
-                asterisk_alpha = "*"
-        row += asterisk_alpha + " & (" + str(round(row_data["t_alpha"], 2)) + ") & " + str(round(row_data["beta"], 3))
-        # computing the asterisks for the betas
-        asterisk_beta = ""
-        match row_data["p_beta"]:
-            case _ if row_data["p_beta"] <= 0.01:
-                asterisk_beta = "***"
-            case _ if row_data["p_beta"] <= 0.05:
-                asterisk_beta = "**"
-            case _ if row_data["p_beta"] <= 0.1:
-                asterisk_beta = "*"
-        row += asterisk_beta + " & (" + str(round(row_data["t_beta"], 2)) + ") & " + str(round(row_data["r_squared"], 3)) + " & " + str(round(row_data["mean_absolute_pricing_error"], 3)) + " & " + str(round(row_data["average_r_squared"], 3))
-                
-        template = template.replace("<" + var + "_data>", row)
+    # for the multi-factor model
+    try:
+        for model in data["model"].unique():
+            data = data[data["model"] == model]
+            row = ""
+            for var in variables:
+                row_data = data[data["ls_strategy"] == var]
+                row += " & " + str(round(row_data["alpha"], 3))
+                # computing the asterisks for the alphas
+                asterisk_alpha = asterisk_for_p_value(row_data["p_alpha"])
+                row += asterisk_alpha + " & (" + str(round(row_data["t_alpha"], 2)) + ") & " + str(round(row_data["beta_market_excess_return"], 3))
+                # computing the asterisks for the beta for the market excess return
+                asterisk_beta_market_excess_return = asterisk_for_p_value(row_data["p_beta_market_excess_return"])
+                row += asterisk_beta_market_excess_return + " & (" + str(round(row_data["t_beta_market_excess_return"], 2)) + ") & "
+                if model == "model1":
+                    # computing the asterisks for the beta for the small-minus-big factor
+                    asterisk_beta_small_minus_big = asterisk_for_p_value(row_data["p_beta_small_minus_big"])
+                    # adding 2 empty columns at the end
+                    row += str(round(row_data["beta_small_minus_big"], 3)) + asterisk_beta_small_minus_big + " & (" + str(round(row_data["t_beta_small_minus_big"], 2)) + ") & & & "
+                if model == "model2":
+                    # computing the asterisks for the beta for the momentum factor
+                    asterisk_beta_momentum = asterisk_for_p_value(row_data["p_beta_small_minus_big"])
+                    # adding 2 empty columns at the beginning
+                    row += " & & " + str(round(row_data["beta_momentum"], 3)) + asterisk_beta_momentum + " & (" + str(round(row_data["t_beta_momentum"], 2)) + ") & "
+                if model == "model3":
+                    # computing the asterisks for the beta for the small-minus-big factor
+                    asterisk_beta_small_minus_big = asterisk_for_p_value(row_data["p_beta_small_minus_big"])
+                    row += str(round(row_data["beta_small_minus_big"], 3)) + asterisk_beta_small_minus_big + " & (" + str(round(row_data["t_beta_small_minus_big"], 2)) + ") & "
+                    # computing the asterisks for the beta for the momentum factor
+                    asterisk_beta_momentum = asterisk_for_p_value(row_data["p_beta_small_minus_big"])
+                    row += str(round(row_data["beta_momentum"], 3)) + asterisk_beta_momentum + " & (" + str(round(row_data["t_beta_momentum"], 2)) + ") & "
+                row += str(round(row_data["r_squared"], 3)) + " & " + str(round(row_data["mean_absolute_error"], 3)) + " & " + str(round(row_data["average_r_squared"], 3))
 
-    args = easydict.EasyDict({})
-
-    with open("cover.tex", "w") as f:
-        f.write(template%args.__dict__)
-
-    cmd = ["pdflatex", "-interaction", "nonstopmode", "cover.tex"]
-    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-    proc.communicate()
-
-    retcode = proc.returncode
-    if not retcode == 0:
-        os.unlink("cover.pdf")
-        raise ValueError("Error {} executing command: {}".format(retcode, " ".join(cmd))) 
-
-    os.unlink("cover.tex")
-    os.unlink("cover.log")
-    os.unlink("cover.aux")
-
-    time.sleep(3)
-    # the path where the PDF is stored
-    pdf_path = os.getcwd() + "/cover.pdf"
-
-    # inverting the colors in the PDF in case the user is using dark mode
-    if invert:
-
-        from pdf2image import convert_from_path
-        from PIL import ImageChops
-
-        pil_image_lst = convert_from_path(pdf_path)
-        image = pil_image_lst[0]
-        image = ImageChops.invert(image)
-        image.save(pdf_path)
-        time.sleep(3)
-
-def render_multi_factor_models_statistics(data, template, variables, invert):
-
-    # opens the LaTeX factor model statistics table template as a string
-    template = open(template, "r").read()
-
-    row = ""
-    for var in variables:
-        row_data = data[data["ls_strategy"] == var]
-        row += " & " + str(round(row_data["alpha"], 3))
-        # computing the asterisks for the alphas
-        asterisk_alpha = ""
-        match row_data["p_alpha"]:
-            case _ if row_data["p_alpha"] <= 0.01:
-                asterisk_alpha = "***"
-            case _ if row_data["p_alpha"] <= 0.05:
-                asterisk_alpha = "**"
-            case _ if row_data["p_alpha"] <= 0.1:
-                asterisk_alpha = "*"
-        row += asterisk_alpha + " & (" + str(round(row_data["t_alpha"], 2)) + ") & " + str(round(row_data["beta"], 3))
-        # computing the asterisks for the betas
-        asterisk_beta = ""
-        match row_data["p_beta"]:
-            case _ if row_data["p_beta"] <= 0.01:
-                asterisk_beta = "***"
-            case _ if row_data["p_beta"] <= 0.05:
-                asterisk_beta = "**"
-            case _ if row_data["p_beta"] <= 0.1:
-                asterisk_beta = "*"
-        row += asterisk_beta + " & (" + str(round(row_data["t_beta"], 2)) + ") & " + str(round(row_data["r_squared"], 3)) + " & " + str(round(row_data["mean_absolute_pricing_error"], 3)) + " & " + str(round(row_data["average_r_squared"], 3))
-                
-        template = template.replace("<" + var + "_data>", row)
+                # adding the row for the variable of interest and the respective model        
+                template = template.replace("<" + var + "_data" + model[-1] + ">", row)
+    # when the column model does not exist because we are rendering the one-factor model
+    except:
+        row = ""
+        for var in variables:
+            row_data = data[data["ls_strategy"] == var]
+            row += " & " + str(round(row_data["alpha"], 3))
+            # computing the asterisks for the alphas
+            asterisk_alpha = asterisk_for_p_value(row_data["p_alpha"])
+            row += asterisk_alpha + " & (" + str(round(row_data["t_alpha"], 2)) + ") & " + str(round(row_data["beta"], 3))
+            # computing the asterisks for the betas
+            asterisk_beta = asterisk_for_p_value(row_data["p_beta"])
+            row += asterisk_beta + " & (" + str(round(row_data["t_beta"], 2)) + ") & " + str(round(row_data["r_squared"], 3)) + " & " + str(round(row_data["mean_absolute_error"], 3)) + " & " + str(round(row_data["average_r_squared"], 3))
+                    
+            template = template.replace("<" + var + "_data>", row)
 
     args = easydict.EasyDict({})
 
