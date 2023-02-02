@@ -259,21 +259,21 @@ def render_summary_statistics(daily_data, market_weekly_data, weekly_data, inver
 
     args = easydict.EasyDict({})
 
-    with open('cover.tex','w') as f:
+    with open("cover.tex", "w") as f:
         f.write(template%args.__dict__)
 
-    cmd = ['pdflatex', '-interaction', 'nonstopmode', 'cover.tex']
+    cmd = ["pdflatex", "-interaction", "nonstopmode", "cover.tex"]
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
     proc.communicate()
 
     retcode = proc.returncode
     if not retcode == 0:
-        os.unlink('cover.pdf')
-        raise ValueError('Error {} executing command: {}'.format(retcode, ' '.join(cmd))) 
+        os.unlink("cover.pdf")
+        raise ValueError("Error {} executing command: {}".format(retcode, " ".join(cmd))) 
 
-    os.unlink('cover.tex')
-    os.unlink('cover.log')
-    os.unlink('cover.aux')
+    os.unlink("cover.tex")
+    os.unlink("cover.log")
+    os.unlink("cover.aux")
 
     time.sleep(3)
     # the path where the PDF is stored
@@ -323,21 +323,21 @@ def render_quintiles(data, template, variables, invert):
 
     args = easydict.EasyDict({})
 
-    with open('cover.tex','w') as f:
+    with open("cover.tex", "w") as f:
         f.write(template%args.__dict__)
 
-    cmd = ['pdflatex', '-interaction', 'nonstopmode', 'cover.tex']
+    cmd = ["pdflatex", "-interaction", "nonstopmode", "cover.tex"]
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
     proc.communicate()
 
     retcode = proc.returncode
     if not retcode == 0:
-        os.unlink('cover.pdf')
-        raise ValueError('Error {} executing command: {}'.format(retcode, ' '.join(cmd))) 
+        os.unlink("cover.pdf")
+        raise ValueError("Error {} executing command: {}".format(retcode, " ".join(cmd))) 
 
-    os.unlink('cover.tex')
-    os.unlink('cover.log')
-    os.unlink('cover.aux')
+    os.unlink("cover.tex")
+    os.unlink("cover.log")
+    os.unlink("cover.aux")
 
     time.sleep(3)
     # the path where the PDF is stored
@@ -389,21 +389,21 @@ def render_one_factor_model_statistics(data, template, variables, invert):
 
     args = easydict.EasyDict({})
 
-    with open('cover.tex','w') as f:
+    with open("cover.tex", "w") as f:
         f.write(template%args.__dict__)
 
-    cmd = ['pdflatex', '-interaction', 'nonstopmode', 'cover.tex']
+    cmd = ["pdflatex", "-interaction", "nonstopmode", "cover.tex"]
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
     proc.communicate()
 
     retcode = proc.returncode
     if not retcode == 0:
-        os.unlink('cover.pdf')
-        raise ValueError('Error {} executing command: {}'.format(retcode, ' '.join(cmd))) 
+        os.unlink("cover.pdf")
+        raise ValueError("Error {} executing command: {}".format(retcode, " ".join(cmd))) 
 
-    os.unlink('cover.tex')
-    os.unlink('cover.log')
-    os.unlink('cover.aux')
+    os.unlink("cover.tex")
+    os.unlink("cover.log")
+    os.unlink("cover.aux")
 
     time.sleep(3)
     # the path where the PDF is stored
@@ -455,21 +455,21 @@ def render_multi_factor_models_statistics(data, template, variables, invert):
 
     args = easydict.EasyDict({})
 
-    with open('cover.tex','w') as f:
+    with open("cover.tex", "w") as f:
         f.write(template%args.__dict__)
 
-    cmd = ['pdflatex', '-interaction', 'nonstopmode', 'cover.tex']
+    cmd = ["pdflatex", "-interaction", "nonstopmode", "cover.tex"]
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
     proc.communicate()
 
     retcode = proc.returncode
     if not retcode == 0:
-        os.unlink('cover.pdf')
-        raise ValueError('Error {} executing command: {}'.format(retcode, ' '.join(cmd))) 
+        os.unlink("cover.pdf")
+        raise ValueError("Error {} executing command: {}".format(retcode, " ".join(cmd))) 
 
-    os.unlink('cover.tex')
-    os.unlink('cover.log')
-    os.unlink('cover.aux')
+    os.unlink("cover.tex")
+    os.unlink("cover.log")
+    os.unlink("cover.aux")
 
     time.sleep(3)
     # the path where the PDF is stored
