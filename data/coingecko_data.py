@@ -24,9 +24,6 @@ The function "retrieve_data" returns a pd dataframe with columns for coin_id, pr
 
 __all__ = ["retrieve_data"]
 
-from re import X
-
-
 def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_subset=100, download=True, pro_key=""):
     
     import time, pandas as pd, datetime, pycoingecko, os, numpy as np
