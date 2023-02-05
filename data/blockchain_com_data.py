@@ -13,31 +13,23 @@ The function "retrieve_data" has the following arguments:
 - charts: A list of all charts for which the time series should be downloaded or returned.
 - path: The path where the user intends to store the data. The default is "".
 - download: Whether the user wants to download the data or get them returned. The default is True.
-
-The function "retrieve_data" returns a pd dateframe with columns for date, n-unique-addresses, and n-transactions
+The function "retrieve_data" returns a pd dateframe with columns for date, n-unique-addresses, and n-transactions.
 """
 
 __all__ = ["retrieve_data"]
 
 def retrieve_data(start_date, end_date, charts, path="", download=True):
-
     import requests, pandas as pd, os
     from dateutil.relativedelta import relativedelta
-
     start_dates = [start_date, start_date + relativedelta(years=6)]
     end_dates = [start_date + relativedelta(years=6) - relativedelta(days=1), end_date]
-    
     date_range = pd.date_range(start=start_date, end=end_date, freq="D")
-
     historic_data = {"date": date_range}
-
     # add an empty list for every chart to store the time series data in
     for chart in charts:
         historic_data[chart] = []
-
     if path != "":
         file_names = os.listdir(path)
-
     for chart in charts:
         for i in range(len(start_dates)):
             # if one chooses a longer time period than 6 years, the API starts returning fewer data points
@@ -49,10 +41,6 @@ def retrieve_data(start_date, end_date, charts, path="", download=True):
             data = response.json()            
             data = pd.DataFrame.from_records(data["values"])
             # the x-values are Unix timestamps
-            # checking if the starting and ending dates are correct
-            # print(datetime.datetime.fromtimestamp(data["values"][0]["x"]))
-            # print(datetime.datetime.fromtimestamp(data["values"][-1]["x"]))
-
             # the code below creates a date subset according to start date
             date_range = pd.date_range(start=start_dates[i], end=end_dates[i], freq="D")
             data = data.rename(columns={"x": "date", "y": chart})
@@ -61,12 +49,9 @@ def retrieve_data(start_date, end_date, charts, path="", download=True):
             data.set_index("date", inplace=True, drop=True)
             data = data.reindex(date_range)
             historic_data[chart] += data[chart].tolist()
-
     historic_data = pd.DataFrame.from_dict(historic_data)
     historic_data.set_index("date", inplace=True, drop=True)
-    
     print("Count total NaN at each column in a dataframe:\n\n", historic_data.isnull().sum())
-
     if download:
         if "blockchain_com_data.csv" not in file_names:
             historic_data.to_csv(path + "/blockchain_com_data.csv")
@@ -78,6 +63,3 @@ def retrieve_data(start_date, end_date, charts, path="", download=True):
                 print("Could not create a new file.")
     else: 
         return historic_data
-
-# import pandas as pd
-# print(retrieve_data(start_date=pd.to_datetime("2014-01-01"), end_date=pd.to_datetime("today"), charts=["n-unique-addresses", "n-transactions"], download=False).head(50))

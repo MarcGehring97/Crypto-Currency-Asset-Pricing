@@ -14,31 +14,23 @@ The function "retrieve_data" has the following arguments:
 - query: The terms the user wants the count of tweets containing them per day of. The default is "Bitcoin".
 - download: Whether the user wants to download the data or get them returned. The default is True.
 - bearer_token: The bearer token the user needs to authenticate. The default is "".
-
-The function "retrieve_data" returns a pd dataframe with columns for date and tweet_count
+The function "retrieve_data" returns a pd dataframe with columns for date and tweet_count.
 """
 
 __all__ = ["retrieve_data"]
 
 def retrieve_data(start_date, end_date, path="", query=["Bitcoin"], download=True, bearer_token=""):
-
     from twarc import Twarc2
     import datetime, pandas as pd, os
-
     if path != "":
         file_names = os.listdir(path)
-
     client = Twarc2(bearer_token=bearer_token)
-
     # specify the start time in UTC for the time period you want Tweets from
-
     # today does not work so it has to be the day before
     start_date = start_date
     end_date = end_date - datetime.timedelta(days=1)
-
     # the counts_all method call the full-archive tweet counts endpoint to get tweet volume based on the query, start, and end times
     count_results = client.counts_all(query=query, start_time=start_date, end_time=end_date, granularity="day")
-
     # iterating through and processing the data
     dates = []
     data = []
@@ -47,14 +39,12 @@ def retrieve_data(start_date, end_date, path="", query=["Bitcoin"], download=Tru
         for data_point in reversed(page_data):
             dates.append(pd.to_datetime(data_point["end"]).date())
             data.append(data_point["tweet_count"])
-    
     df = pd.DataFrame.from_dict({"date": dates, "tweet_count": data})
     df = df.reindex(index=df.index[::-1])
     date_range = pd.date_range(start=start_date, end=end_date, freq="D")
     df = df.drop_duplicates(subset="date")
     df.set_index("date", inplace=True, drop=True)
     df = df.reindex(date_range)
-
     if download:
         if "twitter_data.csv" not in file_names:
             df.to_csv(path + "/twitter_data.csv")
@@ -66,7 +56,3 @@ def retrieve_data(start_date, end_date, path="", query=["Bitcoin"], download=Tru
                 print("Could not create a new file.")
     else: 
         return df
-
-# import pandas as pd, json
-# bearer_token = json.load(open("/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/twitter_bearer_token_main.json"))["bearer_token"]
-# print(retrieve_data(start_date=pd.to_datetime("2014-01-01"), end_date=pd.to_datetime("today"), bearer_token=bearer_token, download=False).head(50))

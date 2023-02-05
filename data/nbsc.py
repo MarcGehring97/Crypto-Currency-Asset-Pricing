@@ -16,28 +16,20 @@ The function "retrieve_data" has the following arguments:
 __all__ = ["retrieve_data"]
 
 def retrieve_data(path="", download=True):
-
     import requests, pandas as pd, os
-
     if path != "":
         file_names = os.listdir(path)
-
     # the website browser can be found at https://data.stats.gov.cn/english/index.htm
     # there, one can also see the format for the date range to be specifical in the API URL
     # if one wishes to find the API URL of another data series, one has to open the developer tool, go to network, then Fetch/XHR, navigate to the desired data series in the browser, and then inspect the different queries
     # for URL encoding: https://de.wikipedia.org/wiki/URL-Encoding
-
     api_url = "https://data.stats.gov.cn/english/easyquery.htm?m=QueryData&dbcode=hgyd&rowcode=zb&colcode=sj&wds=%5B%5D&dfwds=%5B%7B%22wdcode%22%3A%22zb%22%2C%22valuecode%22%3A%22A03010G%22%7D%5D&k1=1672874627369"
     # the value code for there data series here is A03010G
-
     print("The API URL is: " + api_url + ".")
-
     response = requests.get(api_url, verify=False)
-
     meta_info = response.json()["returndata"]["wdnodes"]
     name = meta_info[0]["nodes"][0]["cname"]
     print(name)
-
     response = response.json()
     data = []
     dates = []
@@ -48,14 +40,12 @@ def retrieve_data(path="", download=True):
         if response["returndata"]["datanodes"][i]["wds"][1]["valuecode"] == "201101":
             break
         i += 1
-
     df = pd.DataFrame.from_dict({"dates": dates, "Output of Electricity, Current Period(100 million kwh)": data})
     df["date"] = pd.to_datetime(data["date"])
     df = df.drop_duplicates(subset="date")
     df.set_index("date", inplace=True, drop=True)
     date_range = pd.date_range(start=start_date, end=end_date, freq="D")
     df = df.reindex(date_range)
-
     if download:
         if "nbsc_data.csv" not in file_names:
             df.to_csv(path + "/nbsc_data.csv")
@@ -67,5 +57,3 @@ def retrieve_data(path="", download=True):
                 print("Could not create a new file.")
     else: 
         return df
-
-# print(retrieve_data(download=False).head())

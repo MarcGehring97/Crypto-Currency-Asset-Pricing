@@ -18,24 +18,19 @@ The function "retrieve_data" has the following arguments:
 - ids_per_data_subset: This is the size of each data subset if the user intends to download the data is data subsets. The default is 100.
 - download: Whether the user wants to download the data or get them returned. The default is True.
 - pro_key: If the user has a CoinGecko API Pro key, he/she can use it here. The API calls will no longer have the restrictions described above. The default is "".
-
 The function "retrieve_data" returns a pd dataframe with columns for coin_id, prices, market_caps, and total_volumes. The index are the dates.
 """
 
 __all__ = ["retrieve_data"]
 
 def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_subset=100, download=True, pro_key=""):
-    
-    import time, pandas as pd, datetime, pycoingecko, os, numpy as np
-
+    import time, pandas as pd, pycoingecko, os, numpy as np
     if pro_key == "":
         cg = pycoingecko.CoinGeckoAPI()
     else:
         cg = pycoingecko.CoinGeckoAPI(api_key=pro_key)
-
     # checking whether the API is working
     print(cg.ping())
-
     # this function takes in a crude list of coin IDs and returns a filtered list of a predefined size
     def filter_ids(coin_list, starting_index, ids_per_data_subset):
         index = int(starting_index)
@@ -58,19 +53,15 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
                     break
             else:
                 break
-
         # checking for duplicate IDs (there are usually none)
         for coin_id in coin_ids:
             if coin_ids.count(coin_id) > 1:
                 print("This ID occurs more than once: " + coin_id + ".")
-        
         return (coin_ids, index)
-
     # Creating Unix timestamps
     start_date_unix = time.mktime((start_date.year, start_date.month, start_date.day, 12, 0, 0, 4, 1, -1))
     end_date_unix = time.mktime((end_date.year, end_date.month, end_date.day, 12, 0, 0, 4, 1, -1))
     # info regarding the arguments can be found at https://docs.python.org/3/library/time.html#time.struct_time
-
     # creating a data frame with the historic data (dates, prices, market capitalizations, and total volumes) for each coin ID
     def retrieving_cg_data(coin_ids):
         print("The retrieval progress for this data (sub)set is: ")
@@ -90,7 +81,6 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
             if progress > percentage_counter:
                 percentage_counter += 1
                 print(str(progress) + "%")
-            
             try:
                 # retrieving the data 
                 data = cg.get_coin_market_chart_range_by_id(id=coin_id, vs_currency="usd", from_timestamp=start_date_unix, to_timestamp=end_date_unix)
@@ -110,13 +100,11 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
                         # adding NaN values for 0.0 values
                         df[var] = df[var].replace(0.0, np.nan)
                         coin_df[var] = df[var].tolist()
-                
                 coin_df.insert(0, "coin_id", coin_id, True)
                 dfs.append(coin_df)
             except Exception:
                 print(Exception)
                 print("The data could not be downloaded but the process continues.")
-
         df = pd.concat(dfs)
         df = df.rename(columns={"prices": "price", "market_caps": "market_cap", "total_volumes": "total_volume"})
         # the data series are of different lengths depending on the availability of historic data
@@ -126,17 +114,7 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
     def create_data_files(path, starting_index, ids_per_data_subset, download):
         # retrieving a list of all coin IDs
         # the initial API call returns a list of dictionaries with detailed information
-        
         coin_list = cg.get_coins_list()
-
-        """
-        new = []
-        for dict in coin_list:
-            if dict["id"] == "bitcoin" or dict["id"] == "ethereum":
-                new.append(dict)
-        coin_list = new
-        """
-
         list_length = len(coin_list)
         if ids_per_data_subset == "All":
             ids_per_data_subset = list_length
@@ -145,22 +123,18 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
             else:
                 print("Returning all data.")
         dfs = []
-
         if path != "":
             file_names = os.listdir(path)
-
         while True:
             # printing the progress 
             progress = int(starting_index / list_length * 100)
             print("The overall progress is: " + str(progress) + "%")
-            
             coin_ids, ending_index = filter_ids(coin_list, starting_index, ids_per_data_subset)
             # the retrieved index is already incremented since the incrementation happens after the ID is added to the IDs list
             # exporting the data in a dataframe to a path specified by the user
             # the ending index is stored
             # if the last ending index in the file name is 700, for example, and the process stopped, it can be continued by calling create_data_files() with a starting_index of 700
             # it can be the case, though, that if you download different data packages on different days, the list of coins has changed                
-
             df = retrieving_cg_data(coin_ids)
             if download:
                 coingecko_path = path + "/coingecko"
@@ -178,36 +152,16 @@ def retrieve_data(start_date, end_date, path="", starting_index=0, ids_per_data_
             else:
                 dfs.append(df)
             starting_index = ending_index
-
             if starting_index >= list_length:
                 break
-            
             print("The last successful ending index is: " + str(ending_index) + ".")
-
         if not download:
             if (len(dfs)) > 1:
                 return pd.concat(dfs)
             else:
                 return dfs[0]
-    
     # here the function is called
     return create_data_files(path, starting_index, ids_per_data_subset, download)
-
-"""
-# calling the main function
-# print(retrieve_data(ids_per_data_subset = "All", download = False).head())
-# to download the entire data set at once (not safe) insert "All" for the argument "ids_per_data_subset"
-import pandas as pd
-start_date = pd.to_datetime("2014-01-01")
-end_date = pd.to_datetime("today")
-
-while True:
-    try:
-        print(retrieve_data(start_date=start_date, end_date=end_date, path="", starting_index=0, ids_per_data_subset=100, download=False).head())
-        break
-    except:
-        continue
-"""
 
 """
 The code below can be used to test how long the API takes to process different kinds of calls. The result here is that
@@ -220,18 +174,14 @@ using conditions to filter. This is how the average times for the two options co
 
 # speed test for the two different API calls
 def speed_test(number_of_coins = 100):
-
     import time, pycoingecko
-
     cg = pycoingecko.CoinGeckoAPI()
-
     start_date = time.mktime((2011, 1, 1, 12, 0, 0, 4, 1, -1))
     end_date = time.time()
     coin_list = cg.get_coins_list()[:number_of_coins]
     total_time1 = 0
     total_time2 = 0
     counter = 0
-
     for coin in coin_list:
         try: 
             coin_id = coin["id"]
@@ -246,7 +196,6 @@ def speed_test(number_of_coins = 100):
         counter += 1
         total_time1 += end1 - start1
         total_time2 += end2 - start2
-
     print("The two API calls were tested for " + str(counter) + " coins.")
     print("The average time for the first API call was " + str(total_time1 / counter) + ".")
     print("The average time for the second API call was " + str(total_time2 / counter) + ".")

@@ -81,7 +81,7 @@ date_range = pd.date_range(start=df.index.min(), end=df.index.max(), freq="W")
 return_df = return_df.reindex(date_range)
 
 print(return_df.head(50))
-"""
+
 
 
 import pandas as pd, os, subprocess, easydict, time, numpy as np
@@ -172,7 +172,7 @@ weekly_returns_data["log_price"] = np.log(weekly_returns_data["price"])
 weekly_returns_data["log_max_price"] = np.log(helpers.convert_frequency(daily_trading_data, method="max")["price"])
 weekly_returns_data["age"] = weekly_returns_data.groupby("coin_id")["return"].transform(lambda x: np.maximum(0, (x.index - x.first_valid_index()).days) if x.first_valid_index() is not None else pd.Series([0] * len(x)))
 date_range = pd.date_range(start=weekly_returns_data.index.min(), end=weekly_returns_data.index.max(), freq="W-SUN")
-weekly_returns_data = weekly_returns_data.groupby("coin_id", group_keys=False).apply(lambda x: x.reindex(date_range))
+weekly_returns_data = weekly_returns_data.groupby("coin_id").apply(lambda x: x.reindex(date_range))
 quintile_data = risk_free_rate
 size_characteristics = ["log_market_cap", "log_price", "log_max_price", "age"]
 for size_characteristic in size_characteristics:
@@ -180,3 +180,33 @@ for size_characteristic in size_characteristics:
     quintile_returns_data = quintile_returns_data.sub(quintile_data["DGS1MO"], axis=0)
     quintile_data = pd.concat([quintile_data, quintile_returns_data], axis=1)
     quintile_data[size_characteristic + "_excess_ls"] = np.where(quintile_data[size_characteristic + "_q1"].isna(), quintile_data[size_characteristic + "_q5"] - quintile_data["DGS1MO"], quintile_data[size_characteristic + "_q5"] - quintile_data[size_characteristic + "_q1"] - quintile_data["DGS1MO"])
+"""
+
+import pandas as pd
+from numpy.lib.stride_tricks import sliding_window_view
+
+# create a DataFrame with mock data
+sub_df = pd.DataFrame({'market_excess_return': [0.05, 0.03, 0.02, 0.04, 0.06, 0.05, 0.03, 0.02, 0.01, 0.05],
+                      'excess_return': [0.03, 0.02, 0.04, 0.05, 0.04, 0.02, 0.01, 0.05, 0.06, 0.04]})
+
+# set the index of the DataFrame to be a date range
+sub_df.index = pd.date_range(start='2023-01-01', end='2023-01-10', freq='D')
+
+# make a copy of the DataFrame and drop NA values
+sub_df_nas_dropped = sub_df.copy().dropna()
+
+# set the index for the test
+index = sub_df_nas_dropped.index[-2]
+
+# set the number of days for the sliding window
+days = 5
+
+# import statsmodels library
+import statsmodels.api as sm
+
+sub_df_nas_dropped = sub_df.copy().dropna()
+model = sm.OLS(sliding_window_view(sub_df_nas_dropped[sub_df_nas_dropped.index <= index]["market_excess_return"], days)[-1], sm.add_constant(sliding_window_view(sub_df_nas_dropped[sub_df_nas_dropped.index <= index]["excess_return"], days)[-1])).fit()
+beta1 = model.params[1]
+beta2 = sub_df[sub_df.index <= index][["excess_return", "market_excess_return"]].rolling(days).cov().unstack()["excess_return"]["market_excess_return"].tolist()[-1] / sub_df[sub_df.index <= index]["market_excess_return"].rolling(days).var().tolist()[-1]
+
+print((beta1, beta2))

@@ -9,34 +9,25 @@ The function "retrieve_data" has the following arguments:
 - end_date: The start date specified in the data_processing file.
 - path: The path where the user intends to store the data. The default is "".
 - download: Whether the user wants to download the data or get them returned. The default is True.
-
-The function "retrieve_data" returns a pd dataframe with columns for date, average_price, net_generation, demand
+The function "retrieve_data" returns a pd dataframe with columns for date, average_price, net_generation, demand.
 """
 
 __all__ = ["retrieve_data"]
 
 def retrieve_data(start_date, end_date, path="", download=True):
-
     import requests, pandas as pd, os, numpy as np
-
     api_urls = {}
     api_urls["average_price"] = "https://api.eia.gov/v2/electricity/retail-sales/data/?api_key=xxxx&frequency=monthly&data[0]=price&start=2011-01&sort[0][column]=customers&sort[0][direction]=desc&offset=0&facets[stateid][]=US&length=1000000000000000&facets[sectorid][]=ALL"
     api_urls["net_generation"] = "https://api.eia.gov/v2/electricity/rto/daily-fuel-type-data/data/?api_key=xxxx&frequency=daily&data[0]=value&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=1000000000000000"
     api_urls["demand"] = "https://api.eia.gov/v2/electricity/rto/daily-region-sub-ba-data/data/?api_key=xxxx&frequency=daily&data[0]=value&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=1000000000000000"
     # the data can already be filtered through the URL by the parameter "facets"
-
     api_key = "jLRWwzxhWL7O85sOU5zE6l3FoRtB4FHbOMi1OqQW"
-
     date_range = pd.date_range(start=start_date, end=end_date, freq="D")
-
     historic_data = {"date": date_range}
-
     for api_url in api_urls:
         historic_data[api_url] = []
-
     if path != "":
         file_names = os.listdir(path)
-
     for var in api_urls:
         # to distinguish between monthly and daily data
         # this is necessary since one needs to retrieve the data for the other two variables for each date individually, starting from first day
@@ -106,14 +97,11 @@ def retrieve_data(start_date, end_date, path="", download=True):
                 else:
                     # otherwise a NaN is added when the date does not exist in the data or when the data is "null"
                     historic_data[var].append(np.nan)
-
     historic_data = pd.DataFrame.from_dict(historic_data)
     historic_data = historic_data.drop_duplicates(subset="date")
     historic_data.set_index("date", inplace=True, drop=True)
     historic_data = historic_data.reindex(date_range)
-
     print("Count total NaN at each column in a dataframe:\n\n", historic_data.isnull().sum())
-    
     if download:
         if "us_eia_data.csv" not in file_names:
             historic_data.to_csv(path + "/us_eia_data.csv", index=False)
@@ -125,6 +113,3 @@ def retrieve_data(start_date, end_date, path="", download=True):
                 print("Could not create a new file.")
     else:
         return historic_data
-
-# import pandas as pd
-# print(retrieve_data(start_date=pd.to_datetime("2014-01-01"), end_date=pd.to_datetime("today"), download=False).head(50))

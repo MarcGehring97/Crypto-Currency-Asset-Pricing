@@ -8,28 +8,21 @@ The function "retrieve_data" has the following arguments:
 - start_date: The start date specified in the data_processing file. 
 - end_date: The start date specified in the data_processing file.
 - path: The path where the user intends to store the data. The default is "".
-- metrics: A list of all metrics for which the time series should be downloaded or returned. The default are the two available metrics of the
-          three that are needed.
+- metrics: A list of all metrics for which the time series should be downloaded or returned. The default are the two available metrics of the 3 that are needed.
 - download: Whether the user wants to download the data or get them returned. The default is True.
-
-The function "retrieve_data" returns a pd dataframe with columns for date, AdrActCnt and TxCnt
+The function "retrieve_data" returns a pd dataframe with columns for date, AdrActCnt and TxCnt.
 """
 
 __all__ = ["retrieve_data"]
 
 def retrieve_data(start_date, end_date, path="", metrics=["AdrActCnt", "TxCnt"], download=True, pro_key=""):
-    
     import pandas as pd, os
     from coinmetrics.api_client import CoinMetricsClient
-
     client = CoinMetricsClient(pro_key)
-
     if path != "":
         file_names = os.listdir(path)
-
     # "catag_assets()" returns a list of dictionaries that contain data about the coins
     # On the 2nd of January 2020 there were 3020 assets
-
     # in the paper, they use only Bitcoin network data
     metrics = client.get_asset_metrics(assets="btc", metrics=metrics, start_time=start_date, end_time=end_date, frequency="1d")
     metrics = pd.DataFrame(metrics)
@@ -38,7 +31,6 @@ def retrieve_data(start_date, end_date, path="", metrics=["AdrActCnt", "TxCnt"],
     date_range = pd.date_range(start=start_date, end=end_date, freq="D")
     metrics.set_index("date", inplace=True, drop=True)
     metrics = metrics.reindex(date_range)
-    
     if download:
         if "coin_metrics_data.csv" not in file_names:
             metrics.to_csv(path + "/coin_metrics_data.csv")
@@ -50,6 +42,3 @@ def retrieve_data(start_date, end_date, path="", metrics=["AdrActCnt", "TxCnt"],
                 print("Could not create a new file.")
     else: 
         return metrics
-
-# import pandas as pd
-# print(retrieve_data(start_date=pd.to_datetime("2014-01-01"), end_date=pd.to_datetime("today"), download=False).head(50))
