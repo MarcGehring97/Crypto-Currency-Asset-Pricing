@@ -180,7 +180,7 @@ for size_characteristic in size_characteristics:
     quintile_returns_data = quintile_returns_data.sub(quintile_data["DGS1MO"], axis=0)
     quintile_data = pd.concat([quintile_data, quintile_returns_data], axis=1)
     quintile_data[size_characteristic + "_excess_ls"] = np.where(quintile_data[size_characteristic + "_q1"].isna(), quintile_data[size_characteristic + "_q5"] - quintile_data["DGS1MO"], quintile_data[size_characteristic + "_q5"] - quintile_data[size_characteristic + "_q1"] - quintile_data["DGS1MO"])
-"""
+
 
 import pandas as pd
 from numpy.lib.stride_tricks import sliding_window_view
@@ -210,3 +210,30 @@ beta1 = model.params[1]
 beta2 = sub_df[sub_df.index <= index][["excess_return", "market_excess_return"]].rolling(days).cov().unstack()["excess_return"]["market_excess_return"].tolist()[-1] / sub_df[sub_df.index <= index]["market_excess_return"].rolling(days).var().tolist()[-1]
 
 print((beta1, beta2))
+
+"""
+import pandas as pd
+
+directory = r"/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data"
+start_date = pd.to_datetime("2014-01-01")
+end_date = pd.to_datetime("today")
+date_range = pd.date_range(start=start_date, end=end_date, freq="W-SUN")
+
+weekly_returns_data = pd.read_csv(directory + "/cg_weekly_returns_data.csv", index_col=["date"])
+weekly_returns_data.index = pd.to_datetime(weekly_returns_data.index)
+# truncating the data set in case it is longer than the period set by start_date and end_date
+date_range = pd.date_range(start=start_date, end=end_date, freq="W-SUN")
+
+weekly_returns_data = weekly_returns_data.groupby("coin_id", group_keys=False).apply(lambda x: x.reindex(date_range))
+
+weekly_returns_data["old_return"] = weekly_returns_data["return"]
+weekly_returns_data["old_market_cap"] = weekly_returns_data["market_cap"]
+
+weekly_returns_data["return"] = weekly_returns_data.groupby("coin_id", group_keys=False)["return"].transform(lambda x: x.loc[x.first_valid_index():].fillna(x.mean()))
+
+
+weekly_returns_data["market_cap"] = weekly_returns_data.groupby("coin_id", group_keys=False)["market_cap"].transform(lambda x: x.loc[x.first_valid_index():].fillna((x.fillna(method="backfill") + x.fillna(method="ffill")) / 2))
+print(weekly_returns_data.head(50))
+
+print(weekly_returns_data[weekly_returns_data["coin_id"] == "0chain"].to_string())
+
