@@ -211,7 +211,7 @@ beta2 = sub_df[sub_df.index <= index][["excess_return", "market_excess_return"]]
 
 print((beta1, beta2))
 
-"""
+
 import pandas as pd
 
 directory = r"/Users/Marc/Desktop/Past Affairs/Past Universities/SSE Courses/Master Thesis/Data"
@@ -237,3 +237,79 @@ print(weekly_returns_data.head(50))
 
 print(weekly_returns_data[weekly_returns_data["coin_id"] == "0chain"].to_string())
 
+"""
+
+import pandas as pd
+import numpy as np
+import statsmodels.api as sm
+from numpy.lib.stride_tricks import sliding_window_view
+import time
+
+np.random.seed(0)
+
+# Generate mock daily_trading_data with the following columns: "coin_id", "return", "excess_return", "market_excess_return", "total_volume", "market_lagged_one_day", "market_lagged_two_days"
+num_rows = 10000
+dates = pd.date_range("2022-01-01", periods=num_rows, freq="D")
+dates = dates.tolist() * 2
+daily_trading_data = pd.DataFrame({"date": dates})
+daily_trading_data["coin_id"] = [1] * num_rows + [2] * num_rows
+daily_trading_data["return"] = ([np.nan] * 2 + np.random.randn(num_rows - 2).tolist()) * 2
+daily_trading_data["excess_return"] = ([np.nan] + np.random.randn(num_rows - 1).tolist()) * 2
+num_rows = 2 * num_rows
+daily_trading_data["market_excess_return"] = np.random.randn(num_rows)
+daily_trading_data["total_volume"] = np.random.randint(1000, 10000, num_rows)
+daily_trading_data["market_lagged_one_day"] = np.random.randn(num_rows)
+daily_trading_data["market_lagged_two_days"] = np.random.randn(num_rows)
+daily_trading_data.set_index("date", inplace=True)
+
+dict = {"beta1": [], "beta2": [], "residual_std": [], "r_squared_difference": [], "standard_deviation": [], "max_return": [], "volume_std": [], "abs_return_per_volume": []}
+
+differences1 = []
+differences2 = []
+
+for coin_id in daily_trading_data["coin_id"].unique():
+        sub_df = daily_trading_data[daily_trading_data["coin_id"] == coin_id].copy()
+        
+        for index in sub_df.index:
+            # converting to weekly data
+            # 6 stands for Sunday
+            # the process might take a long time
+            if index.dayofweek == 6:
+                days = 365
+                start1 = time.time()
+                # sliding_window_view return the rolling window for all indices but we are only interested in the last day, so we use [-1]
+                # for the regression, we drop the missing values
+                sub_df_nas_dropped = sub_df[sub_df.index <= index][["excess_return", "market_excess_return", "market_lagged_one_day", "market_lagged_two_days"]].copy().dropna()
+                if len(sub_df_nas_dropped) < 365:
+                    dict["beta1"].append(np.nan)
+                    dict["residual_std"].append(np.nan)
+                    dict["r_squared_difference"].append(np.nan)
+                else:
+                    model = sm.OLS(sliding_window_view(sub_df_nas_dropped["market_excess_return"], days)[-1], sm.add_constant(sliding_window_view(sub_df_nas_dropped["excess_return"], days)[-1])).fit()
+                    dict["beta1"].append(model.params[1])
+                    # computing the regression residuals
+                    # this step might be unpractical since computing all residuals is very computationally expensive
+                    dict["residual_std"].append(model.resid.std())
+                    new_model = sm.OLS(sliding_window_view(sub_df_nas_dropped["market_excess_return"], days)[-1], sm.add_constant(pd.DataFrame(data=[sliding_window_view(sub_df_nas_dropped["excess_return"], days)[-1], sliding_window_view(sub_df_nas_dropped["market_lagged_one_day"], days)[-1], sliding_window_view(sub_df_nas_dropped["market_lagged_two_days"], days)[-1]]).T)).fit()
+                    dict["r_squared_difference"].append(new_model.rsquared - model.rsquared)
+                end1 = time.time()
+                differences1.append(end1 - start1)
+                start2 = time.time()
+                # this computes beta more quickly
+                # on mock data, both methods have delivered the same numbers
+                sub_df_nas_dropped = sub_df[sub_df.index <= index][["excess_return", "market_excess_return"]].copy().dropna()
+                dict["beta2"].append(sub_df_nas_dropped[["excess_return", "market_excess_return"]].rolling(days).cov().unstack()["excess_return"]["market_excess_return"].tolist()[-1] / sub_df_nas_dropped["market_excess_return"].rolling(days).var().tolist()[-1])
+                end2 = time.time()
+                differences2.append(end2 - start2)
+                # we just consider the return in the portfolio formation week (Monday to Sunday) for the computation of the following variables
+                days = min(len(sub_df[sub_df.index <= index]), 7)
+                dict["standard_deviation"].append(sub_df[sub_df.index <= index]["return"].rolling(days).std().tolist()[-1])
+                dict["max_return"].append(sub_df[sub_df.index <= index]["return"].rolling(days).max().tolist()[-1])
+                dict["volume_std"].append(sub_df[sub_df.index <= index]["total_volume"].rolling(days).std().tolist()[-1])
+                absolute_daily_returns = np.abs(sliding_window_view(sub_df[sub_df.index <= index]["return"], days)[-1]) / sliding_window_view(sub_df[sub_df.index <= index]["total_volume"], days)[-1]
+                dict["abs_return_per_volume"].append(np.nanmean(absolute_daily_returns) if absolute_daily_returns.size != 0 else np.nan)
+
+df = pd.DataFrame({"beta1": dict["beta1"], "beta2": dict["beta2"]})
+# print(df.to_string())
+print(np.mean(differences1))
+print(np.mean(differences2))

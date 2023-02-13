@@ -90,14 +90,14 @@ def merge_data(path="", download=True):
 def convert_frequency(data, method, returns=False):
     date_range = pd.date_range(start=min(data.index), end=max(data.index), freq="W-SUN")
     if method == "last":
-        data = data.groupby("coin_id").apply(lambda x: x.resample("W-SUN").last().reindex(date_range)).reset_index(level="coin_id", drop=True)
+        data = data.groupby("coin_id", group_keys=True).apply(lambda x: x.resample("W-SUN").last().reindex(date_range)).reset_index(level="coin_id", drop=True)
     elif method == "max":
-        data = data.groupby("coin_id").apply(lambda x: x.resample("W-SUN").max().reindex(date_range)).reset_index(level="coin_id", drop=True)
+        data = data.groupby("coin_id", group_keys=True).apply(lambda x: x.resample("W-SUN").max(numeric_only=True).reindex(date_range)).reset_index(level="coin_id", drop=True)
     elif method == "mean":
-        data = data.groupby("coin_id").apply(lambda x: x.resample("W-SUN").mean().reindex(date_range)).reset_index(level="coin_id", drop=True)
+        data = data.groupby("coin_id", group_keys=True).apply(lambda x: x.resample("W-SUN").mean(numeric_only=True).reindex(date_range)).reset_index(level="coin_id", drop=True)
     # .pct_change() defaults to 0 for missing data
     if returns:
-        data["return"] = data.groupby("coin_id")["price"].pct_change()
+        data["return"] = data.groupby("coin_id", group_keys=False)["price"].pct_change()
     data.index.name = "date"
     return data
 
@@ -124,15 +124,15 @@ def quintile_returns(df, var):
         x.loc[mask] = quintiles
         return x
     # creating a new dataframe with the quintile labels for each coin based on the var for that week
-    df["quintile"] = df.groupby("date")[var].transform(lambda x: q_cut(x, var))
+    df["quintile"] = df.groupby("date", group_keys=False)[var].transform(lambda x: q_cut(x, var))
     # shifting the quintile information one period into the future
-    df["quintile"] = df.groupby("coin_id")["quintile"].shift(1)
+    df["quintile"] = df.groupby("coin_id", group_keys=False)["quintile"].shift(1)
     # grouping the dataframe by quintile and date
     grouped_df = df.groupby(["quintile", "date"])
     # computing the market_cap-weighted return for each quintile in the following week
     return_df = grouped_df.apply(lambda x: (x["return"] * x["market_cap"]).sum() / x["market_cap"].sum())
     # resetting the index and renaming the columns
-    return_df = return_df.reset_index().rename(columns={0:"return"})
+    return_df = return_df.rename("return").reset_index()
     # return_df["date"] = return_df["date"].shift(1)
     # pivoting the dataframe to get the return series for each quintile
     return_df = return_df.pivot(index="date", columns="quintile", values="return")
@@ -159,14 +159,14 @@ def tertile_returns(df, var):
         x.loc[mask] = tertile
         return x
     # creating a new dataframe with the tertile labels for each coin based on the var for that week
-    df["tertile"] = df.groupby("date")[var].transform(lambda x: q_cut(x, var))
+    df["tertile"] = df.groupby("date", group_keys=False)[var].transform(lambda x: q_cut(x, var))
     # here, we don't shift the quantiles 1 week into the future
     # grouping the dataframe by tertile and date
     grouped_df = df.groupby(["tertile", "date"])
     # computing the market_cap-weighted return for each tertile in the same week
     return_df = grouped_df.apply(lambda x: (x["return"] * x["market_cap"]).sum() / x["market_cap"].sum())
     # resetting the index and renaming the columns
-    return_df = return_df.reset_index().rename(columns={0:"return"})
+    return_df = return_df.rename("return").reset_index()
     # return_df["date"] = return_df["date"].shift(1)
     # pivoting the dataframe to get the return series for each tertile
     return_df = return_df.pivot(index="date", columns="tertile", values="return")
@@ -190,7 +190,7 @@ def two_times_three_returns(df):
         x.loc[mask] = median
         return x
     # creating a new dataframe with the median labels for each coin based on the market_cap for that week
-    df["median"] = df.groupby("date")["market_cap"].transform(lambda x: q_cut(x))
+    df["median"] = df.groupby("date", group_keys=False)["market_cap"].transform(lambda x: q_cut(x))
     # here, we don't shift the quantiles 1 week into the future
     # dividing the data set by quantile
     q1_return_df = tertile_returns(df[df["median"] == "q1"], "three_week_momentum")
@@ -199,10 +199,10 @@ def two_times_three_returns(df):
 
 def render_summary_statistics(daily_data, market_weekly_data, weekly_data, invert):
     # the number of coins per year for which not every return data point is missing
-    number_of_coins = daily_data.groupby(daily_data.index.year).apply(lambda x: x.groupby("coin_id").apply(lambda x: x["price"].notna().sum() > 0).sum())
+    number_of_coins = daily_data.groupby(daily_data.index.year, group_keys=False).apply(lambda x: x.groupby("coin_id").apply(lambda x: x["price"].notna().sum() > 0).sum())
     # the other statistics
     # group the data by date
-    grouped = daily_data.groupby(daily_data.index.year)
+    grouped = daily_data.groupby(daily_data.index.year, group_keys=False)
     grouped_stats = grouped[["market_cap", "total_volume"]].agg(["mean", "median"])
     mean_market_caps = grouped_stats.loc[:, ("market_cap", "mean")]
     median_market_caps = grouped_stats.loc[:, ("market_cap", "median")]
@@ -242,7 +242,7 @@ def render_summary_statistics(daily_data, market_weekly_data, weekly_data, inver
     os.unlink("cover.aux")
     time.sleep(3)
     # the path where the PDF is stored
-    pdf_path = os.getcwd() + "/cover.pdf"
+    pdf_path = os.getcwd() + "recover.pdf"
     # inverting the colors in the PDF in case the user is using dark mode
     if invert:
         from pdf2image import convert_from_path

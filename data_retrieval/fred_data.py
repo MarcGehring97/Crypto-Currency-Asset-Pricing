@@ -29,13 +29,19 @@ def retrieve_data(start_date, end_date, path="", series_ids=["DGS1MO", "DEXUSAL"
         # for this series, we need more data and hence need to make 2 separate API calls
         if series_id == "DGS1MO":
             api_url1 = "https://api.stlouisfed.org/fred/series/observations?series_id=" + series_id + "&file_type=json&realtime_start=" + str(start_date.date()) + "&realtime_end=" + "2017-12-31" + "&api_key=" + api_key
-            api_url2 = "https://api.stlouisfed.org/fred/series/observations?series_id=" + series_id + "&file_type=json&realtime_start=" + "2018-01-01" + "&realtime_end=" + str(end_date.date()) + "&api_key=" + api_key
             response1 = requests.get(api_url1)
-            response2 = requests.get(api_url2)
-            if response1.status_code != 200 or response2.status_code != 200:
-                print("There was an error")
-                continue
-            data = response1.json()["observations"] + response2.json()["observations"]
+            if end_date >= pd.to_datetime("2018-01-01"):
+                api_url2 = "https://api.stlouisfed.org/fred/series/observations?series_id=" + series_id + "&file_type=json&realtime_start=" + "2018-01-01" + "&realtime_end=" + str(end_date.date()) + "&api_key=" + api_key
+                response2 = requests.get(api_url2)
+                if response1.status_code != 200 or response2.status_code != 200:
+                    print("There was an error")
+                    continue
+                data = response1.json()["observations"] + response2.json()["observations"]
+            else:
+                if response1.status_code != 200:
+                    print("There was an error")
+                    continue
+                data = response1.json()["observations"]
         else:    
             api_url = "https://api.stlouisfed.org/fred/series/observations?series_id=" + series_id + "&file_type=json&realtime_start=" + str(start_date.date()) + "&realtime_end=" + str(end_date.date()) + "&api_key=" + api_key
             response = requests.get(api_url)
