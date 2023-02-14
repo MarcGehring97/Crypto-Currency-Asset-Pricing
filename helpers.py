@@ -123,6 +123,8 @@ def quintile_returns(df, var):
         x = x.copy()
         x.loc[mask] = quintiles
         return x
+    # we drop the rows with missing return values so that the quintiles can be computed more accurately
+    df.dropna(subset=["return"], inplace=True)
     # creating a new dataframe with the quintile labels for each coin based on the var for that week
     df["quintile"] = df.groupby("date", group_keys=False)[var].transform(lambda x: q_cut(x, var))
     # shifting the quintile information one period into the future
@@ -132,7 +134,11 @@ def quintile_returns(df, var):
     # computing the market_cap-weighted return for each quintile in the following week
     return_df = grouped_df.apply(lambda x: (x["return"] * x["market_cap"]).sum() / x["market_cap"].sum())
     # resetting the index and renaming the columns
-    return_df = return_df.rename("return").reset_index()
+    if isinstance(return_df, pd.Series):
+        return_df = return_df.rename("return").reset_index()
+    else:
+        return_df = return_df.reset_index(level="quintile", drop=True)
+        return_df = return_df.reset_index().rename(columns={0:"return"})
     # return_df["date"] = return_df["date"].shift(1)
     # pivoting the dataframe to get the return series for each quintile
     return_df = return_df.pivot(index="date", columns="quintile", values="return")
@@ -166,13 +172,17 @@ def tertile_returns(df, var):
     # computing the market_cap-weighted return for each tertile in the same week
     return_df = grouped_df.apply(lambda x: (x["return"] * x["market_cap"]).sum() / x["market_cap"].sum())
     # resetting the index and renaming the columns
-    return_df = return_df.rename("return").reset_index()
-    # return_df["date"] = return_df["date"].shift(1)
+    if isinstance(return_df, pd.Series):
+        return_df = return_df.rename("return").reset_index()
+    else:
+        return_df = return_df.reset_index(level="tertile", drop=True)
+        return_df = return_df.reset_index().rename(columns={0:"return"})
     # pivoting the dataframe to get the return series for each tertile
     return_df = return_df.pivot(index="date", columns="tertile", values="return")
-    # adding back NaN values
-    date_range = pd.date_range(start=df.index.min(), end=df.index.max(), freq="W")
-    return_df = return_df.reindex(date_range)
+    if not return_df.empty:
+        # adding back NaN values
+        date_range = pd.date_range(start=df.index.min(), end=df.index.max(), freq="W")
+        return_df = return_df.reindex(date_range)
     return return_df
 
 def two_times_three_returns(df):
@@ -190,11 +200,14 @@ def two_times_three_returns(df):
         x.loc[mask] = median
         return x
     # creating a new dataframe with the median labels for each coin based on the market_cap for that week
+    # the availability of the three_week_momentum data correlates with the market_cap variable
+    # hence, we drop the rows with missing return values (which determines three_week_momentum)
+    df.dropna(subset=["return"], inplace=True)
     df["median"] = df.groupby("date", group_keys=False)["market_cap"].transform(lambda x: q_cut(x))
     # here, we don't shift the quantiles 1 week into the future
     # dividing the data set by quantile
-    q1_return_df = tertile_returns(df[df["median"] == "q1"], "three_week_momentum")
-    q2_return_df = tertile_returns(df[df["median"] == "q2"], "three_week_momentum")
+    q1_return_df = tertile_returns(df[df["median"] == "market_cap_q1"], "three_week_momentum")
+    q2_return_df = tertile_returns(df[df["median"] == "market_cap_q2"], "three_week_momentum")
     return (q1_return_df, q2_return_df)
 
 def render_summary_statistics(daily_data, market_weekly_data, weekly_data, invert):
@@ -242,7 +255,7 @@ def render_summary_statistics(daily_data, market_weekly_data, weekly_data, inver
     os.unlink("cover.aux")
     time.sleep(3)
     # the path where the PDF is stored
-    pdf_path = os.getcwd() + "recover.pdf"
+    pdf_path = os.getcwd() + "/cover.pdf"
     # inverting the colors in the PDF in case the user is using dark mode
     if invert:
         from pdf2image import convert_from_path
@@ -299,55 +312,56 @@ def render_quintiles(data, template, variables, invert):
         image.save(pdf_path)
         time.sleep(3)
 
-def render_factor_models_statistics(data, template, variables, invert):
+def render_factor_models_statistics(df, template, invert):
     # opens the LaTeX factor model statistics table template as a string
     template = open(template, "r").read()
     # for the multi-factor model
-    try:
-        for model in data["model"].unique():
-            data = data[data["model"] == model]
+    vars = df["ls_strategy"].unique()
+    if "model" in df.columns:
+        for model in df["model"].unique():
+            data = df[df["model"] == model]
             row = ""
-            for var in variables:
+            for var in vars:
                 row_data = data[data["ls_strategy"] == var]
-                row += f" & {round(row_data['alpha'], 3)}"
+                row += f" & {round(row_data.iloc[0]['alpha'], 3)}"
                 # computing the asterisks for the alphas
-                asterisk_alpha = asterisk_for_p_value(row_data["p_alpha"])
-                row += f"{asterisk_alpha} & ({round(row_data['t_alpha'], 2)}) & {round(row_data['beta_market_excess_return'], 3)}"
+                asterisk_alpha = asterisk_for_p_value(row_data.iloc[0]["p_alpha"])
+                row += f"{asterisk_alpha} & ({round(row_data.iloc[0]['t_alpha'], 2)}) & {round(row_data.iloc[0]['beta_market_excess_return'], 3)}"
                 # computing the asterisks for the beta for the market excess return
-                asterisk_beta_market_excess_return = asterisk_for_p_value(row_data["p_beta_market_excess_return"])
-                row += f"{asterisk_beta_market_excess_return} & ({round(row_data['t_beta_market_excess_return'], 2)}) & "
+                asterisk_beta_market_excess_return = asterisk_for_p_value(row_data.iloc[0]["p_beta_market_excess_return"])
+                row += f"{asterisk_beta_market_excess_return} & ({round(row_data.iloc[0]['t_beta_market_excess_return'], 2)}) & "
                 if model == "model1":
                     # computing the asterisks for the beta for the small-minus-big factor
-                    asterisk_beta_small_minus_big = asterisk_for_p_value(row_data["p_beta_small_minus_big"])
+                    asterisk_beta_small_minus_big = asterisk_for_p_value(row_data.iloc[0]["p_beta_small_minus_big"])
                     # adding 2 empty columns at the end
-                    row += f"{round(row_data['beta_small_minus_big'], 3)}{asterisk_beta_small_minus_big} & ({round(row_data['t_beta_small_minus_big'], 2)}) & & & "
+                    row += f"{round(row_data.iloc[0]['beta_small_minus_big'], 3)}{asterisk_beta_small_minus_big} & ({round(row_data.iloc[0]['t_beta_small_minus_big'], 2)}) & & & "
                 if model == "model2":
                     # computing the asterisks for the beta for the momentum factor
-                    asterisk_beta_momentum = asterisk_for_p_value(row_data["p_beta_small_minus_big"])
+                    asterisk_beta_momentum = asterisk_for_p_value(row_data.iloc[0]["p_beta_small_minus_big"])
                     # adding 2 empty columns at the beginning
-                    row += " & & " + f"{round(row_data['beta_momentum'], 3)}{asterisk_beta_momentum} & ({round(row_data['t_beta_momentum'], 2)}) & "
+                    row += " & & " + f"{round(row_data.iloc[0]['beta_momentum'], 3)}{asterisk_beta_momentum} & ({round(row_data.iloc[0]['t_beta_momentum'], 2)}) & "
                 if model == "model3":
                     # computing the asterisks for the beta for the small-minus-big factor
-                    asterisk_beta_small_minus_big = asterisk_for_p_value(row_data["p_beta_small_minus_big"])
-                    row += f"{round(row_data['beta_small_minus_big'], 3)}{asterisk_beta_small_minus_big} & ({round(row_data['t_beta_small_minus_big'], 2)}) & "
+                    asterisk_beta_small_minus_big = asterisk_for_p_value(row_data.iloc[0]["p_beta_small_minus_big"])
+                    row += f"{round(row_data.iloc[0]['beta_small_minus_big'], 3)}{asterisk_beta_small_minus_big} & ({round(row_data.iloc[0]['t_beta_small_minus_big'], 2)}) & "
                     # computing the asterisks for the beta for the momentum factor
-                    asterisk_beta_momentum = asterisk_for_p_value(row_data["p_beta_small_minus_big"])
-                    row += f"{round(row_data['beta_momentum'], 3)}{asterisk_beta_momentum} & ({round(row_data['t_beta_momentum'], 2)}) & "
-                row += f"{round(row_data['r_squared'], 3)} & {round(row_data['mean_absolute_error'], 3)} & {round(row_data['average_r_squared'], 3)}"
+                    asterisk_beta_momentum = asterisk_for_p_value(row_data.iloc[0]["p_beta_small_minus_big"])
+                    row += f"{round(row_data.iloc[0]['beta_momentum'], 3)}{asterisk_beta_momentum} & ({round(row_data.iloc[0]['t_beta_momentum'], 2)}) & "
+                row += f"{round(row_data.iloc[0]['r_squared'], 3)} & {round(row_data.iloc[0]['mean_absolute_error'], 3)} & {round(row_data.iloc[0]['average_r_squared'], 3)}"
                 # adding the row for the variable of interest and the respective model        
                 template = template.replace(f"<{var}_data{model[-1]}>", row)
     # when the column model does not exist because we are rendering the one-factor models
-    except KeyError:
+    else:
         row = ""
-        for var in variables:
-            row_data = data[data["ls_strategy"] == var]
-            row += f" & {round(row_data['alpha'], 3)}"
+        for var in vars:
+            row_data = df[df["ls_strategy"] == var]
+            row += f" & {round(row_data.iloc[0]['alpha'], 3)}"
             # computing the asterisks for the alphas
-            asterisk_alpha = asterisk_for_p_value(row_data["p_alpha"])
-            row += f"{asterisk_alpha} & ({round(row_data['t_alpha'], 2)}) & {round(row_data['beta'], 3)}"
+            asterisk_alpha = asterisk_for_p_value(row_data.iloc[0]["p_alpha"])
+            row += f"{asterisk_alpha} & ({round(row_data.iloc[0]['t_alpha'], 2)}) & {round(row_data.iloc[0]['beta'], 3)}"
             # computing the asterisks for the betas
-            asterisk_beta = asterisk_for_p_value(row_data["p_beta"])
-            row += f"{asterisk_beta} & ({round(row_data['t_beta'], 2)}) & {round(row_data['r_squared'], 3)} & {round(row_data['mean_absolute_error'], 3)} & {round(row_data['average_r_squared'], 3)}"
+            asterisk_beta = asterisk_for_p_value(row_data.iloc[0]["p_beta"])
+            row += f"{asterisk_beta} & ({round(row_data.iloc[0]['t_beta'], 2)}) & {round(row_data.iloc[0]['r_squared'], 3)} & {round(row_data.iloc[0]['mean_absolute_error'], 3)} & {round(row_data.iloc[0]['average_r_squared'], 3)}"
             template = template.replace(f"<{var}_data>", row)
     # creating the PDF for the template
     args = easydict.EasyDict({})
