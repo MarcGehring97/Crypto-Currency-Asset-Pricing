@@ -320,10 +320,9 @@ def render_factor_models_statistics(df, template, invert):
     if "model" in df.columns:
         for model in df["model"].unique():
             data = df[df["model"] == model]
-            row = ""
             for var in vars:
                 row_data = data[data["ls_strategy"] == var]
-                row += f" & {round(row_data.iloc[0]['alpha'], 3)}"
+                row = f" & {round(row_data.iloc[0]['alpha'], 3)}"
                 # computing the asterisks for the alphas
                 asterisk_alpha = asterisk_for_p_value(row_data.iloc[0]["p_alpha"])
                 row += f"{asterisk_alpha} & ({round(row_data.iloc[0]['t_alpha'], 2)}) & {round(row_data.iloc[0]['beta_market_excess_return'], 3)}"
@@ -352,10 +351,9 @@ def render_factor_models_statistics(df, template, invert):
                 template = template.replace(f"<{var}_data{model[-1]}>", row)
     # when the column model does not exist because we are rendering the one-factor models
     else:
-        row = ""
         for var in vars:
             row_data = df[df["ls_strategy"] == var]
-            row += f" & {round(row_data.iloc[0]['alpha'], 3)}"
+            row = f" & {round(row_data.iloc[0]['alpha'], 3)}"
             # computing the asterisks for the alphas
             asterisk_alpha = asterisk_for_p_value(row_data.iloc[0]["p_alpha"])
             row += f"{asterisk_alpha} & ({round(row_data.iloc[0]['t_alpha'], 2)}) & {round(row_data.iloc[0]['beta'], 3)}"
@@ -373,7 +371,7 @@ def render_factor_models_statistics(df, template, invert):
     retcode = proc.returncode
     if not retcode == 0:
         os.unlink("cover.pdf")
-        raise ValueError("Error {} executing command: {}".format(retcode, " ".join(cmd))) 
+        raise ValueError("Error {} executing command: {}".format(retcode, " ".join(cmd)))
     os.unlink("cover.tex")
     os.unlink("cover.log")
     os.unlink("cover.aux")
