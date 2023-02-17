@@ -312,11 +312,10 @@ def render_quintiles(data, template, variables, invert):
         image.save(pdf_path)
         time.sleep(3)
 
-def render_factor_models_statistics(df, template, invert):
+def render_factor_models_statistics(df, template, vars, invert):
     # opens the LaTeX factor model statistics table template as a string
     template = open(template, "r").read()
     # for the multi-factor model
-    vars = df["ls_strategy"].unique()
     if "model" in df.columns:
         for model in df["model"].unique():
             data = df[df["model"] == model]
