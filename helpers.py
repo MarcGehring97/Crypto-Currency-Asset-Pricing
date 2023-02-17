@@ -103,8 +103,10 @@ def convert_frequency(data, method, returns=False):
 
 # function for the quintiles and the zero-investment long-short strategy
 def quintile_returns(df, var):
+    df = df.copy()
     # writing our own quintile function since the Pandas function qcut() does not adapt well to the edge cases
     def q_cut(x, var):
+        x = x.copy()
         if x.isna().all():
             return pd.Series(np.nan * len(x))
         # this step is necessary since qcut sometimes assigns fewer categorites to the data than specified
@@ -120,7 +122,6 @@ def quintile_returns(df, var):
         elif len(np.unique(quintile_indices)) == 2:
             quintile_indices = np.vectorize(lambda x: 0 if x == 3 else x)(quintile_indices) 
         quintiles = [var + "_q" + str(i + 1) for i in quintile_indices]
-        x = x.copy()
         x.loc[mask] = quintiles
         return x
     # we drop the rows with missing return values so that the quintiles can be computed more accurately
@@ -148,8 +149,10 @@ def quintile_returns(df, var):
     return return_df
 
 def tertile_returns(df, var):
+    df = df.copy()
     # adapting the Pandas qcut function for the edge cases
     def q_cut(x, var):
+        x = x.copy()
         if x.isna().all():
             return pd.Series(np.nan * len(x))
         # this step is necessary since qcut sometimes assigns fewer categorites to the data than specified
@@ -161,7 +164,6 @@ def tertile_returns(df, var):
         if len(np.unique(tertile_indices)) == 2:
             tertile_indices = np.vectorize(lambda x: 0 if x == 1 else x)(tertile_indices)
         tertile = [var + "_q" + str(i + 1) for i in tertile_indices]
-        x = x.copy()
         x.loc[mask] = tertile
         return x
     # creating a new dataframe with the tertile labels for each coin based on the var for that week
@@ -186,8 +188,10 @@ def tertile_returns(df, var):
     return return_df
 
 def two_times_three_returns(df):
+    df = df.copy()
     # adapting the Pandas qcut function for the edge cases
     def q_cut(x):
+        x = x.copy()
         if x.isna().all():
             return pd.Series(np.nan * len(x))
         # this step is necessary since qcut sometimes assigns fewer categorites to the data than specified
@@ -196,7 +200,6 @@ def two_times_three_returns(df):
         # computing the median
         median_indices = np.digitize(x[mask], np.percentile(x[mask], [50]), right=False)
         median = ["market_cap_q" + str(i + 1) for i in median_indices]
-        x = x.copy()
         x.loc[mask] = median
         return x
     # creating a new dataframe with the median labels for each coin based on the market_cap for that week
