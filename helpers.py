@@ -229,12 +229,13 @@ def render_summary_statistics(daily_data, market_weekly_data, weekly_data, inver
     # adding the rows to the LaTeX template
     panel_a_rows = ""
     for year in daily_data.index.year.unique().dropna():
-        panel_a_rows += f"{year} & {'{:,}'.format(number_of_coins[number_of_coins.index == year].tolist()[0])} & {round(mean_market_caps[mean_market_caps.index == year].tolist()[0] / 1000000, 2):,} & {round(median_market_caps[median_market_caps.index == year].tolist()[0] / 1000000, 2):,} & {round(mean_volumes[mean_volumes.index == year].tolist()[0] / 1000, 2):,} & {round(median_volumes[median_volumes.index == year].tolist()[0] / 1000, 2):,} \\\ "
-    panel_a_summary = f"{'{:,}'.format(daily_data['coin_id'].nunique())} & {round(daily_data['market_cap'].mean(skipna=True) / 1000000, 2):,} & {round(daily_data['market_cap'].median(skipna=True) / 1000000, 2):,} & {round(daily_data['total_volume'].mean(skipna=True) / 1000, 2):,} & {round(daily_data['total_volume'].median(skipna=True) / 1000, 2):,}"
-    panel_b_market_return = f"{round(np.mean(market_weekly_data['market_excess_return'].dropna()), 3):,} & {round(market_weekly_data['market_excess_return'].dropna().median(), 3):,} & {round(np.std(market_weekly_data['market_excess_return'].dropna()), 3):,} & {round(market_weekly_data['market_excess_return'].dropna().skew(), 3):,} & {round(market_weekly_data['market_excess_return'].dropna().kurtosis(), 3):,}"
-    panel_b_bitcoin_return = f"{round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().mean(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().median(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().std(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().skew(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().kurtosis(), 3):,}"
-    panel_b_ripple_return = f"{round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().mean(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().median(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().std(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().skew(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().kurtosis(), 3):,}"
-    panel_b_ethereum_return = f"{round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().mean(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().median(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().std(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().skew(), 3):,} & {round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().kurtosis(), 3):,}"
+        panel_a_rows += f"{year} & {'{:,}'.format(number_of_coins[number_of_coins.index == year].tolist()[0])} & {round(mean_market_caps[mean_market_caps.index == year].tolist()[0] / 1000000, 2):,.2f} & {round(median_market_caps[median_market_caps.index == year].tolist()[0] / 1000000, 2):,.2f} & {round(mean_volumes[mean_volumes.index == year].tolist()[0] / 1000, 2):,.2f} & {round(median_volumes[median_volumes.index == year].tolist()[0] / 1000, 2):,.2f} \\\ "
+    panel_a_summary = f"{'{:,}'.format(daily_data['coin_id'].nunique())} & {round(daily_data['market_cap'].mean(skipna=True) / 1000000, 2):,.2f} & {round(daily_data['market_cap'].median(skipna=True) / 1000000, 2):,.2f} & {round(daily_data['total_volume'].mean(skipna=True) / 1000, 2):,.2f} & {round(daily_data['total_volume'].median(skipna=True) / 1000, 2):,.2f}"
+    panel_b_market_return = f"{round(np.mean(market_weekly_data['market_excess_return'].dropna()), 3):,.3f} & {round(market_weekly_data['market_excess_return'].dropna().median(), 3):,.3f} & {round(np.std(market_weekly_data['market_excess_return'].dropna()), 3):,.3f} & {round(market_weekly_data['market_excess_return'].dropna().skew(), 3):,.3f} & {round(market_weekly_data['market_excess_return'].dropna().kurtosis(), 3):,.3f}"
+    panel_b_bitcoin_return = f"{round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().mean(), 3):,.3f} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().median(), 3):,.3f} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().std(), 3):,.3f} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().skew(), 3):,.3f} & {round(weekly_data[weekly_data['coin_id'] == 'bitcoin']['return'].dropna().kurtosis(), 3):,.3f}"
+    panel_b_ripple_return = f"{round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().mean(), 3):,.3f} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().median(), 3):,.3f} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().std(), 3):,.3f} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().skew(), 3):,.3f} & {round(weekly_data[weekly_data['coin_id'] == 'ethereum']['return'].dropna().kurtosis(), 3):,.3f}"
+    panel_b_ethereum_return = f"{round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().mean(), 3):,.3f} & {round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().median(), 3):,.3f} & {round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().std(), 3):,.3f} & {round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().skew(), 3):,.3f} & {round(weekly_data[weekly_data['coin_id'] == 'ripple']['return'].dropna().kurtosis(), 3):,.3f}"
+
     # replaceing the predefined strings in the template by the calculates quantities
     template = template.replace("<Panel A rows>", panel_a_rows)
     template = template.replace("<Panel A summary>", panel_a_summary)
@@ -283,8 +284,8 @@ def render_quintiles(data, template, variables, invert):
             # per default, this function performs a two-sided t-test
             t_statstic, p_value = ttest_1samp(column, 0, nan_policy="omit")
             asterisk = asterisk_for_p_value(p_value)
-            mean_row += f" & {round(mean, 3)}{asterisk}"
-            t_row += f" & ({round(t_statstic, 2)})"
+            mean_row += f" & {round(mean, 3):.3f}{asterisk}"
+            t_row += f" & ({round(t_statstic, 2):.2f})"
         # replaceing the predefined strings in the template by the calculates quantities
         template = template.replace(f"<{var}_mean>", mean_row)
         template = template.replace(f"<{var}_t>", t_row)
@@ -324,44 +325,44 @@ def render_factor_models_statistics(df, template, vars, invert):
             data = df[df["model"] == model]
             for var in vars:
                 row_data = data[data["ls_strategy"] == var]
-                row = f" & {round(row_data.iloc[0]['alpha'], 3)}"
+                row = f" & {round(row_data.iloc[0]['alpha'], 3):.3f}"
                 # computing the asterisks for the alphas
                 asterisk_alpha = asterisk_for_p_value(row_data.iloc[0]["p_alpha"])
-                row += f"{asterisk_alpha} & ({round(row_data.iloc[0]['t_alpha'], 2)}) & {round(row_data.iloc[0]['beta_market_excess_return'], 3)}"
+                row += f"{asterisk_alpha} & ({round(row_data.iloc[0]['t_alpha'], 2):.2f}) & {round(row_data.iloc[0]['beta_market_excess_return'], 3):.3f}"
                 # computing the asterisks for the beta for the market excess return
                 asterisk_beta_market_excess_return = asterisk_for_p_value(row_data.iloc[0]["p_beta_market_excess_return"])
-                row += f"{asterisk_beta_market_excess_return} & ({round(row_data.iloc[0]['t_beta_market_excess_return'], 2)}) & "
+                row += f"{asterisk_beta_market_excess_return} & ({round(row_data.iloc[0]['t_beta_market_excess_return'], 2):.2f}) & "
                 if model == "model1":
                     # computing the asterisks for the beta for the small-minus-big factor
                     asterisk_beta_small_minus_big = asterisk_for_p_value(row_data.iloc[0]["p_beta_small_minus_big"])
                     # adding 2 empty columns at the end
-                    row += f"{round(row_data.iloc[0]['beta_small_minus_big'], 3)}{asterisk_beta_small_minus_big} & ({round(row_data.iloc[0]['t_beta_small_minus_big'], 2)}) & & & "
+                    row += f"{round(row_data.iloc[0]['beta_small_minus_big'], 3):.3f}{asterisk_beta_small_minus_big} & ({round(row_data.iloc[0]['t_beta_small_minus_big'], 2):.2f}) & & & "
                 if model == "model2":
                     # computing the asterisks for the beta for the momentum factor
                     asterisk_beta_momentum = asterisk_for_p_value(row_data.iloc[0]["p_beta_small_minus_big"])
                     # adding 2 empty columns at the beginning
-                    row += " & & " + f"{round(row_data.iloc[0]['beta_momentum'], 3)}{asterisk_beta_momentum} & ({round(row_data.iloc[0]['t_beta_momentum'], 2)}) & "
+                    row += " & & " + f"{round(row_data.iloc[0]['beta_momentum'], 3):.3f}{asterisk_beta_momentum} & ({round(row_data.iloc[0]['t_beta_momentum'], 2):.2f}) & "
                 if model == "model3":
                     # computing the asterisks for the beta for the small-minus-big factor
                     asterisk_beta_small_minus_big = asterisk_for_p_value(row_data.iloc[0]["p_beta_small_minus_big"])
-                    row += f"{round(row_data.iloc[0]['beta_small_minus_big'], 3)}{asterisk_beta_small_minus_big} & ({round(row_data.iloc[0]['t_beta_small_minus_big'], 2)}) & "
+                    row += f"{round(row_data.iloc[0]['beta_small_minus_big'], 3):.3f}{asterisk_beta_small_minus_big} & ({round(row_data.iloc[0]['t_beta_small_minus_big'], 2):.2f}) & "
                     # computing the asterisks for the beta for the momentum factor
                     asterisk_beta_momentum = asterisk_for_p_value(row_data.iloc[0]["p_beta_small_minus_big"])
-                    row += f"{round(row_data.iloc[0]['beta_momentum'], 3)}{asterisk_beta_momentum} & ({round(row_data.iloc[0]['t_beta_momentum'], 2)}) & "
-                row += f"{round(row_data.iloc[0]['r_squared'], 3)} & {round(row_data.iloc[0]['mean_absolute_error'], 3)} & {round(row_data.iloc[0]['average_r_squared'], 3)}"
+                    row += f"{round(row_data.iloc[0]['beta_momentum'], 3):.3f}{asterisk_beta_momentum} & ({round(row_data.iloc[0]['t_beta_momentum'], 2):.2f}) & "
+                row += f"{round(row_data.iloc[0]['r_squared'], 3):.3f} & {round(row_data.iloc[0]['mean_absolute_error'], 3):.3f} & {round(row_data.iloc[0]['average_r_squared'], 3):.3f}"
                 # adding the row for the variable of interest and the respective model        
                 template = template.replace(f"<{var}_data{model[-1]}>", row)
     # when the column model does not exist because we are rendering the one-factor models
     else:
         for var in vars:
             row_data = df[df["ls_strategy"] == var]
-            row = f" & {round(row_data.iloc[0]['alpha'], 3)}"
+            row = f" & {round(row_data.iloc[0]['alpha'], 3):.3f}"
             # computing the asterisks for the alphas
             asterisk_alpha = asterisk_for_p_value(row_data.iloc[0]["p_alpha"])
-            row += f"{asterisk_alpha} & ({round(row_data.iloc[0]['t_alpha'], 2)}) & {round(row_data.iloc[0]['beta'], 3)}"
+            row += f"{asterisk_alpha} & ({round(row_data.iloc[0]['t_alpha'], 2):.2f}) & {round(row_data.iloc[0]['beta'], 3):.3f}"
             # computing the asterisks for the betas
             asterisk_beta = asterisk_for_p_value(row_data.iloc[0]["p_beta"])
-            row += f"{asterisk_beta} & ({round(row_data.iloc[0]['t_beta'], 2)}) & {round(row_data.iloc[0]['r_squared'], 3)} & {round(row_data.iloc[0]['mean_absolute_error'], 3)} & {round(row_data.iloc[0]['average_r_squared'], 3)}"
+            row += f"{asterisk_beta} & ({round(row_data.iloc[0]['t_beta'], 2):.2f}) & {round(row_data.iloc[0]['r_squared'], 3):.3f} & {round(row_data.iloc[0]['mean_absolute_error'], 3):.3f} & {round(row_data.iloc[0]['average_r_squared'], 3):.3f}"
             template = template.replace(f"<{var}_data>", row)
     # creating the PDF for the template
     args = easydict.EasyDict({})

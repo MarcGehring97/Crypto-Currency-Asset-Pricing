@@ -21,7 +21,8 @@ def retrieve_data(start_date, end_date, path="", download=True):
     api_urls["net_generation"] = "https://api.eia.gov/v2/electricity/rto/daily-fuel-type-data/data/?api_key=xxxx&frequency=daily&data[0]=value&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=1000000000000000"
     api_urls["demand"] = "https://api.eia.gov/v2/electricity/rto/daily-region-sub-ba-data/data/?api_key=xxxx&frequency=daily&data[0]=value&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=1000000000000000"
     # the data can already be filtered through the URL by the parameter "facets"
-    api_key = "jLRWwzxhWL7O85sOU5zE6l3FoRtB4FHbOMi1OqQW"
+    # insert your API key as a string here
+    api_key = ""
     date_range = pd.date_range(start=start_date, end=end_date, freq="D")
     historic_data = {"date": date_range}
     for api_url in api_urls:
