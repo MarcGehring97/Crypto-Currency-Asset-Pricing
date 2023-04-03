@@ -32,7 +32,8 @@ def retrieve_all(start_date, end_date, path="", download=True):
         # print(data_dict["DESCR"])
         daily_data = data_dict[0]
         output[factor] = daily_data
-    data = output["5"].drop("RF", axis=1)
+    # data = output["5"].drop("RF", axis=1)
+    data = output["5"]
     data["Mom"] = output["Momentum"]["Mom   "].tolist()
     data.index.names = ["date"]
     date_range = pd.date_range(start=start_date, end=end_date, freq="D")

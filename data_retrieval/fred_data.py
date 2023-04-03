@@ -14,7 +14,7 @@ The function "retrieve_data" returns a pd dataframe with columns for date, DEXUS
 __all__ = ["retrieve_data"]
 
 def retrieve_data(start_date, end_date, path="", series_ids=["DGS1MO", "DEXUSAL", "DEXCAUS", "DEXUSEU", "DEXSIUS", "DEXUSUK"], download=True):
-    import requests, os, pandas as pd, json, datetime
+    import requests, os, pandas as pd, json, datetime, numpy as np
     # insert your API key as a string here
     api_key = ""
     date_range = pd.date_range(start=start_date, end=end_date, freq="D")
